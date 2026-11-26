@@ -1,11 +1,12 @@
 ﻿# Fonctions communes (installation, mise a jour, configuration).
 # Utilisable avec : . "$PSScriptRoot\Commun.ps1"
 
-$script:RacineLocale = Join-Path $env:LOCALAPPDATA 'DrSanteOutils'
-$script:AppDir       = Join-Path $script:RacineLocale 'app'
-$script:ShaFile      = Join-Path $script:RacineLocale 'version.sha'
+# Dossier d'installation = parent du dossier scripts (choisi a l'installation)
+$script:AppDir       = Split-Path -Parent $PSScriptRoot
 $script:ConfigDir    = Join-Path $env:APPDATA 'DrSanteOutils'
 $script:ConfigFile   = Join-Path $script:ConfigDir 'config.ini'
+$script:ShaFile      = Join-Path $script:ConfigDir 'version.sha'
+$script:NomTache     = 'Dr Sante outils'   # tache planifiee (demarrage administrateur)
 
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch { }
 
@@ -121,30 +122,29 @@ function Install-DepotZip {
     }
 }
 
-# Met a jour si le depot a change. Renvoie : Updated, PromptsChanged.
-function Update-AppFromDepot {
-    param([switch]$Force)
-    $res = [pscustomobject]@{ Updated = $false; PromptsChanged = $false }
-
+# Une nouvelle version est-elle publiee ? $null si impossible de verifier.
+function Get-UpdateInfo {
     $remote = Get-RemoteSha
-    if (-not $remote) { return $res }
+    if (-not $remote) { return $null }
     $local = ''
     if (Test-Path -LiteralPath $script:ShaFile) { $local = (Get-Content -LiteralPath $script:ShaFile -Raw).Trim() }
-    if (-not $Force -and $remote -eq $local) { return $res }
+    return [pscustomobject]@{ Disponible = ($remote -ne $local); Remote = $remote }
+}
 
+# Installe la version $Remote. Renvoie $true si le prompt Heidi a change.
+function Install-Update {
+    param([Parameter(Mandatory = $true)][string]$Remote)
     $promptFile = Join-Path $script:AppDir 'prompts\heidi_consultation.txt'
     $before = ''
     if (Test-Path -LiteralPath $promptFile) { $before = (Get-FileHash -LiteralPath $promptFile).Hash }
 
     Install-DepotZip
-    Set-Content -LiteralPath $script:ShaFile -Value $remote -Encoding ASCII
+    if (-not (Test-Path -LiteralPath $script:ConfigDir)) { New-Item -ItemType Directory -Path $script:ConfigDir -Force | Out-Null }
+    Set-Content -LiteralPath $script:ShaFile -Value $Remote -Encoding ASCII
 
     $after = ''
     if (Test-Path -LiteralPath $promptFile) { $after = (Get-FileHash -LiteralPath $promptFile).Hash }
-
-    $res.Updated = $true
-    $res.PromptsChanged = ($before -ne $after)
-    return $res
+    return ($before -ne $after)
 }
 
 # --- AutoHotkey v2 ----------------------------------------------------------

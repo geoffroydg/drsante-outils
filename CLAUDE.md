@@ -1,6 +1,6 @@
 # Contexte pour Claude Code
 
-Projet : outils d'un médecin généraliste (Reims) pour automatiser Heidi (transcription) → Dr Santé (logiciel métier). Dépôt partagé avec des confrères, mis à jour automatiquement sur leurs postes.
+Projet : outils d'un médecin généraliste (Reims) pour automatiser Heidi (transcription) → Dr Santé (logiciel métier). Dépôt partagé avec des confrères, mise à jour proposée sur leurs postes.
 
 ## Règles impératives
 
@@ -9,7 +9,7 @@ Projet : outils d'un médecin généraliste (Reims) pour automatiser Heidi (tran
 - Les raccourcis AHK dépendent des balises du prompt (`[ANAMNESE]…[FIN_DRSANTE]`, `[COURRIER]`, `[KINE]`, `[INFIRMIER]`). Toute modification d'une balise se fait **dans les deux fichiers** (prompt + `scripts/DrSante.ahk`).
 - Bloc étiquette : garder les marqueurs `#@ETIQUETTE_DEBUT` / `#@ETIQUETTE_FIN` dans `prompts/heidi_consultation.txt`.
 - Fichiers `.ps1` / `.ahk` : UTF-8 **avec BOM** (Windows PowerShell 5.1). `config.ini` : UTF-16 (lu par AHK et PowerShell).
-- Après chaque modification validée : `Publier.bat` (commit + push). Les postes se mettent à jour seuls à l'ouverture de Windows.
+- Après chaque modification validée : `Publier.bat` (commit + push). La mise à jour est proposée aux postes à l'ouverture de Windows (`scripts/Demarrer.ps1`).
 
 ## Style de travail attendu
 
