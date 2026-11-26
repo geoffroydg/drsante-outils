@@ -1,0 +1,37 @@
+# Valide la version test pour les confreres : la branche main rejoint la
+# branche test (avance rapide uniquement : jamais d'ecrasement).
+# Lance a la main : onglet Actions > Valider > Run workflow
+# (bouton "Valider (confreres)" de la fenetre Dr Sante outils, en version test).
+name: Valider
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  valider:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Avancer main jusqu'a test
+        run: |
+          git fetch origin test main
+          if ! git merge-base --is-ancestor origin/main origin/test; then
+            echo "::error::main contient des modifications absentes de test : rien n'a ete fait."
+            exit 1
+          fi
+          git push origin origin/test:refs/heads/main
+
+      - name: Refaire l'installeur si besoin
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! git diff --quiet ${{ github.sha }} origin/test -- installeur .github/workflows/installeur.yml; then
+            gh workflow run installeur.yml --ref main
+          fi

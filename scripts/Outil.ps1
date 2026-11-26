@@ -64,6 +64,7 @@ $gc = New-Ctrl 'GroupBox' $f 12 315 616 125 'Ce poste'
 $lblPoste = New-Ctrl 'Label' $gc 15 26 586 46 ''
 $btnDossier = New-Ctrl 'Button' $gc 15 76 210 36 'Ouvrir le dossier patient'
 $btnReglages = New-Ctrl 'Button' $gc 235 76 210 36 'Modifier les réglages'
+$btnValider = New-Ctrl 'Button' $gc 455 76 146 36 'Valider (confrères)'
 
 # Raccourcis
 $gr = New-Ctrl 'GroupBox' $f 12 450 616 172 'Raccourcis dans Dr Santé'
@@ -309,7 +310,51 @@ function Show-EditeurRaccourcis {
 
 $btnRac.Add_Click({ Show-EditeurRaccourcis })
 
+# --- Version test (poste du testeur) ---------------------------------------
+# Ctrl + Maj + T dans cette fenetre : active / desactive le canal test.
+function Update-Canal {
+    if (Test-CanalTest) {
+        $f.Text = "$titre  —  VERSION TEST"
+        $btnValider.Visible = $true
+    }
+    else {
+        $f.Text = $titre
+        $btnValider.Visible = $false
+    }
+}
+
+$f.KeyPreview = $true
+$f.Add_KeyDown({
+    param($s, $e)
+    if ($e.Control -and $e.Shift -and $e.KeyCode -eq 'T') {
+        $e.SuppressKeyPress = $true
+        if (Test-CanalTest) {
+            $r = [System.Windows.Forms.MessageBox]::Show("Quitter la version test et revenir à la version des confrères ?",
+                $titre, 'YesNo', 'Question')
+            if ($r -eq 'Yes') { Set-IniValue 'depot' 'canal' 'normal' }
+        }
+        else {
+            $r = [System.Windows.Forms.MessageBox]::Show(("Activer la VERSION TEST sur ce poste ?`n`n" +
+                "Ce poste recevra les nouveautés avant les confrères, pour les essayer. " +
+                "Réservé au testeur (Dr Dagher)."), $titre, 'YesNo', 'Warning')
+            if ($r -eq 'Yes') { Set-IniValue 'depot' 'canal' 'test' }
+        }
+        Update-Canal
+        Update-EtatMaj
+    }
+})
+
+$btnValider.Add_Click({
+    $r = [System.Windows.Forms.MessageBox]::Show(("Envoyer la version test actuelle à tous les confrères ?`n`n" +
+        "La page GitHub va s'ouvrir (connectez-vous si besoin) :`n" +
+        "1. cliquez sur « Run workflow » (à droite),`n" +
+        "2. puis sur le bouton vert « Run workflow ».`n`n" +
+        "Les confrères la recevront à leur prochain démarrage de Windows."), $titre, 'OKCancel', 'Information')
+    if ($r -eq 'OK') { Start-Process $script:PageValidation }
+})
+
 # --- Affichage -------------------------------------------------------------
+Update-Canal
 Update-EtatPrompt
 Update-EtatPoste
 Update-EtatRaccourcis

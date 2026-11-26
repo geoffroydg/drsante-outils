@@ -84,9 +84,16 @@ function Get-GitHubHeaders {
 }
 
 # --- Depot GitHub -----------------------------------------------------------
+# Canal de mise a jour : 'test' (poste du testeur : recoit les nouveautes en
+# premier, branche test) ou normal (branche main, validee pour les confreres).
+# Seules ces deux branches officielles sont possibles.
+function Test-CanalTest { return ((Get-IniValue 'depot' 'canal' '') -eq 'test') }
+function Get-BrancheMaj { if (Test-CanalTest) { return 'test' } else { return 'main' } }
+$script:PageValidation = 'https://github.com/geoffroydg/drsante-outils/actions/workflows/valider.yml'
+
 function Get-RemoteSha {
     $depot  = Get-IniValue 'depot' 'nom' ''
-    $branch = Get-IniValue 'depot' 'branche' 'main'
+    $branch = Get-BrancheMaj
     if (-not $depot) { return '' }
     $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 15 `
         -Uri "https://api.github.com/repos/$depot/commits/$branch" `
@@ -99,7 +106,7 @@ function Get-RemoteSha {
 # Telecharge le depot (zip) et copie son contenu dans $AppDir (ecrase).
 function Install-DepotZip {
     $depot  = Get-IniValue 'depot' 'nom' ''
-    $branch = Get-IniValue 'depot' 'branche' 'main'
+    $branch = Get-BrancheMaj
     if (-not $depot) { throw 'Depot GitHub non configure (config.ini, section [depot]).' }
 
     $tmp = Join-Path $env:TEMP ('drsante_' + [guid]::NewGuid().ToString('N'))
