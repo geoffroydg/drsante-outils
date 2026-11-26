@@ -48,43 +48,29 @@ function Select-Dossier([string]$Description, [string]$Initial) {
     return $null
 }
 
-function Add-Champ($Form, [int]$X, [int]$Y, [string]$Texte, [string]$Valeur, [scriptblock]$Parcourir) {
-    $l = New-Object System.Windows.Forms.Label
-    $l.Text = $Texte; $l.AutoSize = $true
-    $l.Location = New-Object System.Drawing.Point($X, $Y)
-    $Form.Controls.Add($l)
-    $t = New-Object System.Windows.Forms.TextBox
-    $t.Text = $Valeur; $t.Width = 445 - $X
-    $t.Location = New-Object System.Drawing.Point($X, ($Y + 20))
-    $Form.Controls.Add($t)
-    $b = New-Object System.Windows.Forms.Button
-    $b.Text = 'Parcourir...'; $b.Width = 95
-    $b.Location = New-Object System.Drawing.Point(455, ($Y + 19))
-    $Form.Controls.Add($b)
+function Add-Champ($Parent, [int]$X, [int]$Y, [string]$Texte, [string]$Valeur, [scriptblock]$Parcourir) {
+    $l = Add-Ctrl 'Label' $Parent $X $Y ($Parent.Width - $X - 16) 20 $Texte
+    $t = Add-Ctrl 'TextBox' $Parent $X ($Y + 22) ($Parent.Width - $X - 136) 0 $Valeur
+    $b = Add-Bouton $Parent ($Parent.Width - 126) ($Y + 20) 110 'Parcourir...' -H 28
     $b.Tag = @{ Champ = $t; Action = $Parcourir }
     $b.Add_Click({ param($s, $e) & $s.Tag.Action $s.Tag.Champ })
     return @($l, $t, $b)
 }
 
-function Add-Case($Form, [int]$X, [int]$Y, [string]$Texte, [bool]$Coche) {
-    $c = New-Object System.Windows.Forms.CheckBox
-    $c.Text = $Texte; $c.Checked = $Coche; $c.AutoSize = $true
-    $c.Location = New-Object System.Drawing.Point($X, $Y)
-    $Form.Controls.Add($c)
+function Add-Case($Parent, [int]$X, [int]$Y, [string]$Texte, [bool]$Coche) {
+    $c = Add-Ctrl 'CheckBox' $Parent $X $Y 0 0 $Texte
+    $c.Checked = $Coche; $c.AutoSize = $true
     return $c
 }
 
 function Show-FenetreInstallation($c) {
-    $f = New-Object System.Windows.Forms.Form
-    $f.Text = 'Dr Sante - outils : installation'
-    $f.StartPosition = 'CenterScreen'
-    $f.FormBorderStyle = 'FixedDialog'
-    $f.MaximizeBox = $false; $f.MinimizeBox = $false
-    $f.ClientSize = New-Object System.Drawing.Size(565, 420)
-    $f.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+    $f = New-Fenetre 'Dr Santé outils : installation' 600 552
+    $f.MinimizeBox = $false
     $f.Add_Shown({ $f.Activate() })
+    $null = Add-Entete $f 'Installation' 'Dr Santé outils  ·  réglages de cet ordinateur (modifiables ensuite)'
 
-    $app = Add-Champ $f 15 15 "Dossier ou installer les outils (scripts, prompt Heidi) :" $c.App {
+    $cd = Add-Carte $f 20 88 560 156 'Dossiers'
+    $app = Add-Champ $cd 16 42 "Dossier d'installation des outils (scripts, prompt Heidi)" $c.App {
         param($t)
         $s = Select-Dossier "Choisissez (ou creez) le dossier ou installer les outils." $t.Text
         if ($s) {
@@ -92,14 +78,15 @@ function Show-FenetreInstallation($c) {
             $t.Text = $s
         }
     }
-    $pat = Add-Champ $f 15 75 "Dossier patient (ou Dr Sante extrait les documents ; cree s'il n'existe pas) :" $c.Patient {
+    $pat = Add-Champ $cd 16 96 "Dossier patient (où Dr Santé extrait les documents ; créé s'il n'existe pas)" $c.Patient {
         param($t)
         $s = Select-Dossier "Choisissez (ou creez) le dossier ou Dr Sante extrait le dossier patient. Il sera range et vide automatiquement : n'y mettez rien d'autre." $t.Text
         if ($s) { $t.Text = $s }
     }
 
-    $cbEti = Add-Case $f 15 140 "Imprimante a etiquettes Brother (etiquette du carnet de sante, enfants)" $c.Etiquette
-    $lbx = Add-Champ $f 35 165 "Modele d'etiquette (fichier .lbx) :" $c.Lbx {
+    $co = Add-Carte $f 20 256 560 232 'Options'
+    $cbEti = Add-Case $co 16 42 "Imprimante à étiquettes Brother (étiquette du carnet de santé, enfants)" $c.Etiquette
+    $lbx = Add-Champ $co 36 66 "Modèle d'étiquette (fichier .lbx)" $c.Lbx {
         param($t)
         $o = New-Object System.Windows.Forms.OpenFileDialog
         $o.Title = "Choisissez le modele d'etiquette (fichier .lbx)"
@@ -109,28 +96,21 @@ function Show-FenetreInstallation($c) {
     $majEti = { foreach ($x in $lbx) { $x.Enabled = $cbEti.Checked } }
     $cbEti.Add_CheckedChanged($majEti); & $majEti
 
-    $cbDem = Add-Case $f 15 235 "Lancer les outils automatiquement a l'ouverture de Windows (recommande)" $c.Demarrage
-    $cbAdm = Add-Case $f 35 260 "En mode administrateur (recommande : collage fiable dans Dr Sante)" $c.Admin
-    $note = New-Object System.Windows.Forms.Label
-    $note.Text = "Windows demandera une seule fois l'autorisation, maintenant."
-    $note.AutoSize = $true; $note.ForeColor = [System.Drawing.Color]::DimGray
-    $note.Location = New-Object System.Drawing.Point(52, 283)
-    $f.Controls.Add($note)
+    $cbDem = Add-Case $co 16 126 "Lancer les outils à l'ouverture de Windows (recommandé)" $c.Demarrage
+    $cbAdm = Add-Case $co 36 150 "En mode administrateur (recommandé : collage fiable dans Dr Santé)" $c.Admin
+    $note = Add-Ctrl 'Label' $co 54 172 490 20 "Windows demandera une seule fois l'autorisation, maintenant."
+    $note.ForeColor = $script:Theme.TexteDoux; $note.Font = $script:PolicePetite
     $majDem = { $cbAdm.Enabled = $cbDem.Checked; $note.Enabled = $cbDem.Checked }
     $cbDem.Add_CheckedChanged($majDem); & $majDem
 
-    $cbBur = Add-Case $f 15 315 "Icone 'Dr Sante outils' sur le bureau (sinon : menu Demarrer)" $c.Bureau
+    $cbBur = Add-Case $co 16 198 "Icône « Dr Santé outils » sur le bureau (sinon : menu Démarrer)" $c.Bureau
 
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Installer'; $ok.Width = 110
-    $ok.Location = New-Object System.Drawing.Point(320, 375)
+    $ok = Add-Bouton $f 352 504 110 'Installer' -Primaire
     $ok.DialogResult = 'OK'
-    $f.Controls.Add($ok); $f.AcceptButton = $ok
-    $an = New-Object System.Windows.Forms.Button
-    $an.Text = 'Annuler'; $an.Width = 110
-    $an.Location = New-Object System.Drawing.Point(440, 375)
+    $f.AcceptButton = $ok
+    $an = Add-Bouton $f 470 504 110 'Annuler'
     $an.DialogResult = 'Cancel'
-    $f.Controls.Add($an); $f.CancelButton = $an
+    $f.CancelButton = $an
 
     $f.Add_FormClosing({
         param($s, $e)
@@ -191,6 +171,9 @@ try {
 
     # Fonctions communes (lecture de config.ini pour les valeurs par defaut)
     . (Join-Path $source 'scripts\Commun.ps1')
+    # Apparence des fenetres (nettete sur ecran agrandi) ; absent des anciennes versions
+    $ui = Join-Path $source 'scripts\Interface.ps1'
+    if (Test-Path -LiteralPath $ui) { . $ui }
 
     # --- 2) Choix de l'utilisateur ------------------------------------------
     $dem = Get-IniValue 'general' 'demarrage' 'tache'

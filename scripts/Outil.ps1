@@ -6,72 +6,68 @@
 #  - ce poste : dossier patient, demarrage, modification des reglages ;
 #  - rappel des raccourcis clavier dans Dr Santé.
 # ===========================================================================
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-[System.Windows.Forms.Application]::EnableVisualStyles()
 . (Join-Path $PSScriptRoot 'Commun.ps1')
+. (Join-Path $PSScriptRoot 'Interface.ps1')
 
 # Une seule fenetre a la fois
 $createdNew = $false
 $mutex = New-Object System.Threading.Mutex($true, 'Local\DrSanteOutilFenetre', [ref]$createdNew)
 if (-not $createdNew) { exit }
 
-$titre  = 'Dr Santé outils'
-$vert   = [System.Drawing.Color]::FromArgb(0, 128, 60)
-$orange = [System.Drawing.Color]::FromArgb(200, 90, 0)
-$rouge  = [System.Drawing.Color]::FromArgb(190, 0, 0)
+$titre = 'Dr Santé outils'
 $script:info = $null
 
-function New-Ctrl([string]$Type, $Parent, [int]$X, [int]$Y, [int]$W, [int]$H, [string]$Texte) {
-    $c = New-Object "System.Windows.Forms.$Type"
-    $c.Location = New-Object System.Drawing.Point($X, $Y)
-    if ($W) { $c.Width = $W }
-    if ($H) { $c.Height = $H }
-    if ($Texte) { $c.Text = $Texte }
-    $Parent.Controls.Add($c)
-    return $c
+# --- Fenetre (2 colonnes : tient sur un portable a 125 %) -------------------
+$f = New-Fenetre $titre 920 588
+$version = ''
+if (Test-Path -LiteralPath $script:ShaFile) { $version = (Get-Content -LiteralPath $script:ShaFile -Raw).Trim() }
+if ($version.Length -gt 7) { $version = $version.Substring(0, 7) }
+$null = Add-Entete $f 'Dr Santé outils' ('Heidi ' + [char]0x2192 + ' Dr Santé  ·  outils partagés entre confrères')
+
+# Colonne gauche : prompt Heidi
+$gp = Add-Carte $f 20 90 430 176 'Prompt Heidi'
+$etatPrompt = Add-Etat $gp 16 42 398
+$lblVar = Add-Ctrl 'Label' $gp 38 86 376 20 ''
+$lblVar.ForeColor = $script:Theme.TexteDoux; $lblVar.Font = $script:PolicePetite
+$btnCopier = Add-Bouton $gp 16 120 220 'Copier le prompt Heidi' -Primaire -H 38
+$btnVoir = Add-Bouton $gp 246 120 168 'Afficher le prompt' -H 38
+
+# Colonne gauche : mises a jour
+$gm = Add-Carte $f 20 278 430 112 'Mises à jour'
+$etatMaj = Add-Etat $gm 16 42 230
+$btnMaj = Add-Bouton $gm 254 44 160 'Vérifier à nouveau'
+
+# Colonne gauche : ce poste
+$gc = Add-Carte $f 20 402 430 134 'Ce poste'
+$lblPoste = Add-Ctrl 'Label' $gc 16 40 398 44 ''
+$lblPoste.ForeColor = $script:Theme.TexteDoux
+$btnDossier = Add-Bouton $gc 16 88 196 'Ouvrir le dossier patient'
+$btnReglages = Add-Bouton $gc 220 88 194 'Modifier les réglages'
+
+# Colonne droite : raccourcis
+$gr = Add-Carte $f 470 90 430 446 'Raccourcis dans Dr Santé'
+$script:lignesMemo = @()
+$y = 52
+foreach ($r in $script:RaccourcisDef) {
+    $n = Add-Ctrl 'Label' $gr 16 ($y + 5) 180 22 $r.Nom
+    $k = Add-Ctrl 'Label' $gr 200 $y 0 0 ''
+    $k.AutoSize = $true
+    $k.BackColor = $script:Theme.Touche
+    $k.Padding = New-Object System.Windows.Forms.Padding(8, 5, 8, 5)
+    $k.Font = New-Object System.Drawing.Font('Segoe UI Semibold', 9.75)
+    $script:lignesMemo += [pscustomobject]@{ Def = $r; Touche = $k }
+    $y += 40
 }
+$lblAideRac = Add-Ctrl 'Label' $gr 16 ($y + 8) 398 80 ("Les imports et le menu des documents ne fonctionnent que dans la fenêtre Dr Santé. " +
+    "Le menu des documents (kiné, soins infirmiers, certificats, imagerie) s'ouvre sous la souris : un clic colle le document choisi.")
+$lblAideRac.ForeColor = $script:Theme.TexteDoux
+$btnRac = Add-Bouton $gr 16 396 220 'Modifier les raccourcis'
 
-# --- Fenetre ---------------------------------------------------------------
-$f = New-Object System.Windows.Forms.Form
-$f.Text = $titre
-$f.StartPosition = 'CenterScreen'
-$f.FormBorderStyle = 'FixedSingle'
-$f.MaximizeBox = $false
-$f.ClientSize = New-Object System.Drawing.Size(640, 672)
-$f.Font = New-Object System.Drawing.Font('Segoe UI', 9.75)
-$gras = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
-
-# Prompt Heidi
-$gp = New-Ctrl 'GroupBox' $f 12 10 616 195 'Prompt Heidi'
-$lblEtat = New-Ctrl 'Label' $gp 15 26 586 44 ''
-$lblEtat.Font = $gras
-$lblVar = New-Ctrl 'Label' $gp 15 72 586 20 ''
-$lblVar.ForeColor = [System.Drawing.Color]::DimGray
-$btnCopier = New-Ctrl 'Button' $gp 15 98 240 40 'Copier le prompt Heidi'
-$btnCopier.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
-$btnVoir = New-Ctrl 'Button' $gp 265 98 170 40 'Afficher le prompt'
-$lblAide = New-Ctrl 'Label' $gp 15 146 586 42 "Dans Heidi : ouvrez votre modèle, sélectionnez tout l'ancien texte (Ctrl+A), collez le nouveau (Ctrl+V), puis enregistrez."
-
-# Mises a jour
-$gm = New-Ctrl 'GroupBox' $f 12 215 616 90 'Mises à jour'
-$lblMaj = New-Ctrl 'Label' $gm 15 30 400 44 'Vérification en cours...'
-$lblMaj.Font = $gras
-$btnMaj = New-Ctrl 'Button' $gm 425 28 176 40 'Vérifier à nouveau'
-
-# Ce poste
-$gc = New-Ctrl 'GroupBox' $f 12 315 616 125 'Ce poste'
-$lblPoste = New-Ctrl 'Label' $gc 15 26 586 46 ''
-$btnDossier = New-Ctrl 'Button' $gc 15 76 210 36 'Ouvrir le dossier patient'
-$btnReglages = New-Ctrl 'Button' $gc 235 76 210 36 'Modifier les réglages'
-
-# Raccourcis
-$gr = New-Ctrl 'GroupBox' $f 12 450 616 172 'Raccourcis dans Dr Santé'
-$lblRac = New-Ctrl 'Label' $gr 15 24 586 96 ''
-$lblRac.Font = New-Object System.Drawing.Font('Consolas', 10)
-$btnRac = New-Ctrl 'Button' $gr 15 124 240 36 'Modifier les raccourcis'
-
-$btnFermer = New-Ctrl 'Button' $f 528 632 100 32 'Fermer'
+# Pied de fenetre
+$lblVersion = Add-Ctrl 'Label' $f 22 556 500 20 ''
+$lblVersion.ForeColor = $script:Theme.TexteDoux; $lblVersion.Font = $script:PolicePetite
+if ($version) { $lblVersion.Text = "Version installée : $version" }
+$btnFermer = Add-Bouton $f 790 548 110 'Fermer'
 $btnFermer.DialogResult = 'Cancel'
 $f.CancelButton = $btnFermer
 
@@ -80,20 +76,17 @@ function Update-EtatPrompt {
     try {
         $var = 'sans étiquette carnet de santé'
         if ((Get-IniValue 'general' 'etiquette' '0') -eq '1') { $var = 'avec étiquette carnet de santé' }
-        $lblVar.Text = "Version du prompt pour ce poste : $(Get-HeidiPromptVersion) ($var)"
+        $lblVar.Text = "Version $(Get-HeidiPromptVersion), $var"
         if (Test-HeidiPromptAJour) {
-            $lblEtat.Text = [string][char]0x2714 + '  À jour : le dernier prompt copié correspond aux scripts installés.'
-            $lblEtat.ForeColor = $vert
+            Set-Etat $etatPrompt 'ok' 'À jour : le prompt de Heidi correspond aux outils installés.'
         }
         else {
-            $lblEtat.Text = [string][char]0x26A0 + "  À faire : copiez le prompt et collez-le dans Heidi (nouvelle version, ou jamais copié sur ce poste)."
-            $lblEtat.ForeColor = $orange
+            Set-Etat $etatPrompt 'alerte' 'À faire : copiez le prompt et collez-le dans votre modèle Heidi.'
         }
         $btnCopier.Enabled = $true; $btnVoir.Enabled = $true
     }
     catch {
-        $lblEtat.Text = "Prompt introuvable : relancez l'installation."
-        $lblEtat.ForeColor = $rouge
+        Set-Etat $etatPrompt 'erreur' "Prompt introuvable : relancez l'installation."
         $btnCopier.Enabled = $false; $btnVoir.Enabled = $false
     }
 }
@@ -112,11 +105,10 @@ $btnCopier.Add_Click({
 })
 
 $btnVoir.Add_Click({
-    $v = New-Object System.Windows.Forms.Form
-    $v.Text = 'Prompt Heidi (lecture seule)'
-    $v.StartPosition = 'CenterParent'
-    $v.ClientSize = New-Object System.Drawing.Size(820, 620)
+    $v = New-Fenetre 'Prompt Heidi (lecture seule)' 820 560 -Dialogue
+    $v.FormBorderStyle = 'Sizable'; $v.MaximizeBox = $true
     $t = New-Object System.Windows.Forms.TextBox
+    $t.BorderStyle = 'None'; $t.BackColor = [System.Drawing.Color]::White
     $t.Multiline = $true; $t.ReadOnly = $true; $t.ScrollBars = 'Vertical'; $t.WordWrap = $true
     $t.Dock = 'Fill'
     $t.Font = New-Object System.Drawing.Font('Consolas', 10)
@@ -128,25 +120,21 @@ $btnVoir.Add_Click({
 
 # --- Mises a jour ----------------------------------------------------------
 function Update-EtatMaj {
-    $lblMaj.Text = 'Vérification en cours...'
-    $lblMaj.ForeColor = [System.Drawing.Color]::Black
+    Set-Etat $etatMaj 'neutre' 'Vérification en cours...'
     $btnMaj.Enabled = $false
     $f.Refresh()
     $script:info = $null
     try { $script:info = Get-UpdateInfo } catch { }
     if (-not $script:info) {
-        $lblMaj.Text = 'Impossible de vérifier (connexion internet ?).'
-        $lblMaj.ForeColor = $rouge
+        Set-Etat $etatMaj 'erreur' 'Vérification impossible (connexion internet ?).' 
         $btnMaj.Text = 'Vérifier à nouveau'
     }
     elseif ($script:info.Disponible) {
-        $lblMaj.Text = 'Une nouvelle version est disponible.'
-        $lblMaj.ForeColor = $orange
+        Set-Etat $etatMaj 'alerte' 'Une nouvelle version est disponible.' 
         $btnMaj.Text = 'Installer la mise à jour'
     }
     else {
-        $lblMaj.Text = [string][char]0x2714 + '  Les outils sont à jour.'
-        $lblMaj.ForeColor = $vert
+        Set-Etat $etatMaj 'ok' 'Les outils sont à jour.' 
         $btnMaj.Text = 'Vérifier à nouveau'
     }
     $btnMaj.Enabled = $true
@@ -155,8 +143,7 @@ function Update-EtatMaj {
 $btnMaj.Add_Click({
     if ($script:info -and $script:info.Disponible) {
         $f.Cursor = 'WaitCursor'
-        $lblMaj.Text = 'Installation en cours...'
-        $lblMaj.ForeColor = [System.Drawing.Color]::Black
+        Set-Etat $etatMaj 'neutre' 'Installation en cours...' 
         $f.Refresh()
         try {
             $null = Install-Update $script:info.Remote
@@ -200,10 +187,9 @@ $btnReglages.Add_Click({
 
 # --- Raccourcis ------------------------------------------------------------
 function Update-EtatRaccourcis {
-    $lignes = foreach ($r in $script:RaccourcisDef) {
-        '{0,-27}{1}' -f $r.Nom, (ConvertTo-TexteRaccourci (Get-Raccourci $r.Cle))
+    foreach ($l in $script:lignesMemo) {
+        $l.Touche.Text = ConvertTo-TexteRaccourci (Get-Raccourci $l.Def.Cle)
     }
-    $lblRac.Text = ($lignes -join "`n")
 }
 
 # Remplit une ligne de la fenetre de modification
@@ -223,28 +209,22 @@ function Set-LigneRac($l, [string]$Ahk) {
 # Fenetre de modification (enregistre dans config.ini, propre a ce poste)
 function Show-EditeurRaccourcis {
     $script:touches = Get-TouchesRaccourci
-    $d = New-Object System.Windows.Forms.Form
-    $d.Text = 'Modifier les raccourcis'
-    $d.StartPosition = 'CenterParent'
-    $d.FormBorderStyle = 'FixedDialog'
-    $d.MaximizeBox = $false; $d.MinimizeBox = $false
-    $d.ClientSize = New-Object System.Drawing.Size(640, 360)
-    $d.Font = $f.Font
+    $d = New-Fenetre 'Modifier les raccourcis' 640 360 -Dialogue
 
-    $null = New-Ctrl 'Label' $d 12 10 616 40 ("Cochez les touches à maintenir et choisissez la touche ou le bouton. " +
+    $null = Add-Ctrl 'Label' $d 12 10 616 40 ("Cochez les touches à maintenir et choisissez la touche ou le bouton. " +
         "Les imports ne marchent que dans Dr Santé ; « Vider » marche partout. Réglage propre à ce poste.")
 
     $script:lignesRac = @()
     $y = 58
     foreach ($r in $script:RaccourcisDef) {
-        $null = New-Ctrl 'Label' $d 12 ($y + 4) 190 22 $r.Nom
+        $null = Add-Ctrl 'Label' $d 12 ($y + 4) 190 22 $r.Nom
         $l = [pscustomobject]@{
             Def  = $r
-            Ctrl = New-Ctrl 'CheckBox' $d 205 $y 55 26 'Ctrl'
-            Alt  = New-Ctrl 'CheckBox' $d 262 $y 50 26 'Alt'
-            Maj  = New-Ctrl 'CheckBox' $d 314 $y 52 26 'Maj'
-            Win  = New-Ctrl 'CheckBox' $d 368 $y 52 26 'Win'
-            Liste = New-Ctrl 'ComboBox' $d 425 $y 200 26 ''
+            Ctrl = Add-Ctrl 'CheckBox' $d 205 $y 55 26 'Ctrl'
+            Alt  = Add-Ctrl 'CheckBox' $d 262 $y 50 26 'Alt'
+            Maj  = Add-Ctrl 'CheckBox' $d 314 $y 52 26 'Maj'
+            Win  = Add-Ctrl 'CheckBox' $d 368 $y 52 26 'Win'
+            Liste = Add-Ctrl 'ComboBox' $d 425 $y 200 26 ''
         }
         $l.Liste.DropDownStyle = 'DropDownList'
         foreach ($t in $script:touches) { $null = $l.Liste.Items.Add($t.Texte) }
@@ -252,9 +232,9 @@ function Show-EditeurRaccourcis {
         $y += 40
     }
 
-    $btnDefaut = New-Ctrl 'Button' $d 12 310 240 36 'Rétablir les valeurs par défaut'
-    $btnOk     = New-Ctrl 'Button' $d 400 310 110 36 'Enregistrer'
-    $btnAnn    = New-Ctrl 'Button' $d 518 310 110 36 'Annuler'
+    $btnDefaut = Add-Bouton $d 12 310 240 'Rétablir les valeurs par défaut'
+    $btnOk     = Add-Bouton $d 400 310 110 'Enregistrer' -Primaire
+    $btnAnn    = Add-Bouton $d 518 310 110 'Annuler'
     $btnAnn.DialogResult = 'Cancel'
     $d.CancelButton = $btnAnn
     $script:dlgRac = $d
