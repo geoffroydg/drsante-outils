@@ -3,7 +3,7 @@
 ## Imagerie (fait)
 
 Modèle dans `prompts/heidi_consultation.txt` (déclencheur « 2) IMAGERIE », modèle « IMAGERIE »).
-Collage dans Dr Santé : **Ctrl + Maj + clic molette** (une ordonnance par appui ; une ordonnance par modalité).
+Collage dans Dr Santé : **Win + clic molette** → menu des documents → « Imagerie — … » (une ordonnance par modalité).
 
 Contenu :
 - **Examen** : modalité + zone + côté + incidences / technique, uniquement si cités (une ligne par examen).

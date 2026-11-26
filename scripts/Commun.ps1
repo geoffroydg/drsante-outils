@@ -213,10 +213,7 @@ $script:RaccourcisDef = @(
     [pscustomobject]@{ Cle = 'adulte';    Defaut = '^MButton';  Nom = 'Consultation adulte' }
     [pscustomobject]@{ Cle = 'enfant';    Defaut = '!MButton';  Nom = 'Consultation enfant' }
     [pscustomobject]@{ Cle = 'courrier';  Defaut = '+MButton';  Nom = "Courrier d'adressage" }
-    [pscustomobject]@{ Cle = 'kine';      Defaut = '#MButton';  Nom = 'Ordonnance de kiné' }
-    [pscustomobject]@{ Cle = 'infirmier'; Defaut = '^!MButton'; Nom = 'Ordonnance infirmière' }
-    [pscustomobject]@{ Cle = 'certificat'; Defaut = '!+MButton'; Nom = 'Certificat médical' }
-    [pscustomobject]@{ Cle = 'imagerie';  Defaut = '^+MButton'; Nom = "Ordonnance d'imagerie" }
+    [pscustomobject]@{ Cle = 'documents'; Defaut = '#MButton'; Nom = 'Menu des documents' }
     [pscustomobject]@{ Cle = 'vider';     Defaut = '^!v';       Nom = 'Vider le dossier patient' }
 )
 

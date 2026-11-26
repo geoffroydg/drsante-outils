@@ -1,7 +1,7 @@
 # Certificats médicaux
 
 Les modèles sont dans `prompts/heidi_consultation.txt` (déclencheur « 5) CERTIFICAT » et modèle « CERTIFICAT »).
-Collage dans Dr Santé : **Alt + Maj + clic molette** (un certificat par appui ; s'il y en a plusieurs, créer un nouveau document entre deux appuis).
+Collage dans Dr Santé : **Win + clic molette** → menu des documents → cliquer le certificat voulu (les documents déjà collés sont cochés).
 
 ## Les 5 modèles
 
