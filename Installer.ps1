@@ -4,9 +4,8 @@
 # etiquettes, lancement au demarrage (mode administrateur), raccourci bureau.
 # Relancer l'installateur = modifier ces choix (config.ini est conserve).
 #
-# Depot public :
+# Le plus simple : DrSante-Installation.exe (voir README.md). Sinon, dans PowerShell :
 #   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/geoffroydg/drsante-outils/main/Installer.ps1)))
-# Depot prive (jeton de lecture fourni par l'administrateur) : voir README.md
 # ===========================================================================
 param(
     [string]$Depot = 'geoffroydg/drsante-outils',
@@ -26,6 +25,13 @@ Add-Type -AssemblyName System.Drawing
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch { }
 
 $titre = 'Dr Sante - installation'
+# Toute erreur : message clair au lieu d'une fenetre qui se ferme
+trap {
+    [System.Windows.Forms.MessageBox]::Show(
+        "L'installation a echoue :`n`n$($_.Exception.Message)`n`nReessayez ; si le probleme persiste, envoyez une photo de ce message a l'administrateur.",
+        $titre, 'OK', 'Error') | Out-Null
+    break
+}
 function Info($m) { Write-Host "[Dr Sante] $m" -ForegroundColor Cyan }
 
 if ([string]::IsNullOrWhiteSpace($Depot) -or $Depot -like '__*__') {

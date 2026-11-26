@@ -1,0 +1,39 @@
+# Fabrique DrSante-Installation.exe sur un ordinateur Windows de GitHub et le
+# publie a une adresse fixe :
+# https://github.com/geoffroydg/drsante-outils/releases/download/installeur/DrSante-Installation.exe
+name: Installeur
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'installeur/**'
+      - '.github/workflows/installeur.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compiler l'exe
+        shell: pwsh
+        run: |
+          $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          & $csc /nologo /target:winexe /optimize+ /out:DrSante-Installation.exe /r:System.Windows.Forms.dll installeur\Installation.cs
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Publier
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view installeur *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create installeur --title "Installation Dr Sante outils" --notes "Telechargez DrSante-Installation.exe puis double-cliquez dessus." --latest
+          }
+          gh release upload installeur DrSante-Installation.exe --clobber

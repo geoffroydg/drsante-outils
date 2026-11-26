@@ -4,10 +4,13 @@ Prompts Heidi, raccourcis AutoHotkey et rangement du dossier patient, partagés 
 
 ## Installer sur un nouveau poste (confrère)
 
-Coller dans PowerShell (menu Démarrer → « PowerShell ») :
+1. Télécharger **[DrSante-Installation.exe](https://github.com/geoffroydg/drsante-outils/releases/download/installeur/DrSante-Installation.exe)**.
+2. Double-cliquer dessus. Si Windows affiche « Windows a protégé votre ordinateur » : **Informations complémentaires** → **Exécuter quand même** (le fichier n'est pas signé numériquement).
 
-- Dépôt public : `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/geoffroydg/drsante-outils/main/Installer.ps1)))`
-- Dépôt privé : la ligne exacte (avec jeton) est affichée par `Publier.bat`.
+Autre méthode (PowerShell, menu Démarrer → « PowerShell ») :
+`& ([scriptblock]::Create((irm https://raw.githubusercontent.com/geoffroydg/drsante-outils/main/Installer.ps1)))`
+
+L'exe est fabriqué automatiquement par GitHub (`installeur/Installation.cs`, `.github/workflows/installeur.yml`) et télécharge toujours l'installateur le plus récent : inutile de le refaire après une modification.
 
 L'installateur ouvre une fenêtre : dossier d'installation des outils, dossier patient (choisi ou créé), imprimante à étiquettes, lancement au démarrage de Windows **en mode administrateur** (une seule autorisation Windows, via une tâche planifiée « Dr Sante outils »), icône sur le bureau (facultatif). Il installe AutoHotkey v2 puis ouvre la fenêtre **Dr Santé outils**.
 
