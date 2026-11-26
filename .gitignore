@@ -1,0 +1,10 @@
+# JAMAIS de donnees patient ni de reglages locaux dans le depot
+Dossier patient/
+**/Dossier patient/
+config.ini
+*.log
+journal_aplatissement.txt
+version.sha
+*.lbx.tmp
+Thumbs.db
+desktop.ini
