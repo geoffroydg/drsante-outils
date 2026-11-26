@@ -13,9 +13,10 @@
 ; MAJ   + CLIC MOLETTE      = Courrier d'adressage (1 courrier par appui)
 ; WIN   + CLIC MOLETTE      = Ordonnance de kine (1 ordonnance par appui)
 ; CTRL+ALT + CLIC MOLETTE   = Ordonnance de soins infirmiers (1 par appui)
+; ALT+MAJ  + CLIC MOLETTE   = Certificat medical (1 certificat par appui)
 ; CTRL+ALT+V                = Vide definitivement le dossier patient
 ;
-; Plusieurs courriers / ordonnances dans la meme consultation : chacun va
+; Plusieurs courriers / ordonnances / certificats dans la meme consultation : chacun va
 ; dans un document Dr Sante SEPARE (a creer entre deux appuis). Tant que le
 ; presse-papiers ne change pas, chaque appui colle le suivant.
 ;
@@ -39,16 +40,20 @@ global KINE_STATE_TEXT := ""
 global KINE_STATE_INDEX := 0
 global INF_STATE_TEXT := ""
 global INF_STATE_INDEX := 0
+global CERT_STATE_TEXT := ""
+global CERT_STATE_INDEX := 0
 
 ; Ligne fixe inseree par le script (jamais par Heidi) apres la formule de politesse
 global COURRIER_MACRO_PREFIX := "Je vous adresse {CivilitePatient} {NomPatient} {PrenomPatient}, né(e) le {DateNaissancePatient}, agé(e) de {AgePatient} "
 ; Macros Dr Sante inserees quand Heidi n'a rien redige pour antecedents / traitements
 global COURRIER_MACRO_ANTECEDENTS := "{ListePathologiesAntecedents}"
 global COURRIER_MACRO_TRAITEMENTS := "{ListeCompleteTraitements}"
+; Identite du patient dans les certificats (remplace la ligne @IDENTITE@ ecrite par Heidi)
+global CERTIFICAT_MACRO_IDENTITE := "{NomPatient} {PrenomPatient}, né(e) le {DateNaissancePatient},"
 
 ;---------------------------------------------------------------
 ; RACCOURCIS : lus dans config.ini [raccourcis] (syntaxe AutoHotkey v2 :
-; ^ = Ctrl, ! = Alt, + = Maj, # = Win ; ex. ^!MButton). Les cinq imports
+; ^ = Ctrl, ! = Alt, + = Maj, # = Win ; ex. ^!MButton). Les imports
 ; ne marchent que dans Dr Sante ; "vider" marche partout.
 ; Valeur invalide ou en double -> message + valeur par defaut.
 ;---------------------------------------------------------------
@@ -58,6 +63,7 @@ global RACCOURCIS := [
     {cle: "courrier",  defaut: "+MButton",  drsante: true,  nom: "Courrier d'adressage",           action: (*) => ImportCourrierDrSante()},
     {cle: "kine",      defaut: "#MButton",  drsante: true,  nom: "Ordonnance de kine",             action: (*) => ImportKineDrSante()},
     {cle: "infirmier", defaut: "^!MButton", drsante: true,  nom: "Ordonnance de soins infirmiers", action: (*) => ImportInfirmierDrSante()},
+    {cle: "certificat", defaut: "!+MButton", drsante: true, nom: "Certificat medical",             action: (*) => ImportCertificatDrSante()},
     {cle: "vider",     defaut: "^!v",       drsante: false, nom: "Vider le dossier patient",       action: (*) => ViderDossierPatient()}
 ]
 ActiverRaccourcis()
@@ -481,6 +487,106 @@ ImportInfirmierDrSante()
     PasteToField(infsBruts[INF_STATE_INDEX])
     BlockInput(false)
     A_Clipboard := heidiText
+}
+
+;===================================================================
+; IMPORT CERTIFICAT(S) MEDICAL(AUX)  (Alt + Maj + clic molette)
+; 1re ligne du bloc = repere du type (non collee) ; @IDENTITE@ est
+; remplace par les macros Dr Sante (nom, prenom, date de naissance).
+;===================================================================
+ImportCertificatDrSante()
+{
+    global CERT_STATE_TEXT, CERT_STATE_INDEX
+
+    PrepareSend()
+    heidiText := A_Clipboard
+
+    if !InStr(heidiText,"[CERTIFICAT]") or !InStr(heidiText,"[FIN_CERTIFICAT]")
+    {
+        BlockInput(false)
+        MsgBox("Le presse-papiers ne contient pas de certificat balise"
+            . " (balises [CERTIFICAT]...[FIN_CERTIFICAT] introuvables).`n`n"
+            . "Import annule : rien n'a ete colle dans Dr Sante.`n`n"
+            . "Verifiez que Heidi a bien genere un certificat dans cette consultation"
+            . " et que le prompt Heidi est a jour.",
+            "Import annule", "Icon!")
+        return
+    }
+
+    certsBruts := ExtractBlocks(heidiText, "CERTIFICAT")
+    nbCerts := certsBruts.Length
+
+    if (nbCerts = 0)
+    {
+        BlockInput(false)
+        MsgBox("Balises [CERTIFICAT] trouvees mais contenu vide ou illisible. Rien n'a ete colle.",
+            "Import annule", "Icon!")
+        return
+    }
+
+    wrapped := false
+    if (heidiText = CERT_STATE_TEXT)
+    {
+        CERT_STATE_INDEX += 1
+        if (CERT_STATE_INDEX > nbCerts)
+        {
+            CERT_STATE_INDEX := 1
+            wrapped := true
+        }
+    }
+    else
+    {
+        CERT_STATE_TEXT := heidiText
+        CERT_STATE_INDEX := 1
+    }
+
+    p := BuildCertificatParts(certsBruts[CERT_STATE_INDEX])
+
+    if (nbCerts > 1)
+    {
+        msg := wrapped
+            ? ("Retour au certificat 1/" nbCerts " - tous avaient deja ete"
+                . " colles, on recommence.")
+            : ("Certificat " CERT_STATE_INDEX "/" nbCerts " (" p.type
+                . ") colle dans ce document.")
+        ShowCourrierTooltip(msg)
+    }
+
+    PasteToField(p.corps)
+    BlockInput(false)
+    A_Clipboard := heidiText
+}
+
+; Retire la ligne repere (si presente) et le gras Markdown ; la ligne
+; @IDENTITE@ est fondue dans la phrase (sans retour a la ligne).
+BuildCertificatParts(brut)
+{
+    lignes := StrSplit(StrReplace(brut, "**", ""), "`n", "`r")
+    type := ""
+    corps := ""
+    joindre := false
+    for i, l in lignes
+    {
+        t := Trim(l)
+        if (i = 1 && RegExMatch(t, "i)^(SPORT|EPS|ENFANT MALADE)\s*[—–-]"))
+        {
+            type := t
+            continue
+        }
+        if (t = "@IDENTITE@")
+        {
+            corps := RTrim(corps, " `t") " " CERTIFICAT_MACRO_IDENTITE
+            joindre := true
+            continue
+        }
+        l := StrReplace(l, "@IDENTITE@", CERTIFICAT_MACRO_IDENTITE)
+        if (joindre)
+            corps .= " " LTrim(l, " `t")
+        else
+            corps .= (corps = "" ? "" : "`r`n") . l
+        joindre := false
+    }
+    return {type: type, corps: Trim(corps, " `t`r`n")}
 }
 
 ;---------------------------------------------------------------

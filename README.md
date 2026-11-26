@@ -24,7 +24,7 @@ L'installateur ouvre une fenêtre : dossier d'installation des outils, dossier p
 ## Au quotidien
 
 - À l'ouverture de Windows, si une nouvelle version est publiée : une fenêtre propose de l'installer (Oui / Non), sinon reproposée au démarrage suivant. Si le prompt Heidi a changé, elle propose d'ouvrir Dr Santé outils pour le copier.
-- Raccourcis par défaut (dans Dr Santé ; modifiables dans la fenêtre Dr Santé outils) : Ctrl+clic molette = consultation adulte · Alt+clic molette = enfant · Maj+clic molette = courrier · Win+clic molette = kiné · Ctrl+Alt+clic molette = soins infirmiers · Ctrl+Alt+V = vider le dossier patient.
+- Raccourcis par défaut (dans Dr Santé ; modifiables dans la fenêtre Dr Santé outils) : Ctrl+clic molette = consultation adulte · Alt+clic molette = enfant · Maj+clic molette = courrier · Win+clic molette = kiné · Ctrl+Alt+clic molette = soins infirmiers · Alt+Maj+clic molette = certificat · Ctrl+Alt+V = vider le dossier patient.
 
 ## Pour l'administrateur
 
@@ -34,7 +34,7 @@ Après toute modification : double-clic sur `Publier.bat` (ou demander à Claude
 
 - `prompts/heidi_consultation.txt` : prompt Heidi unique. Le bloc étiquette carnet de santé est entouré de `#@ETIQUETTE_DEBUT` / `#@ETIQUETTE_FIN` : retiré automatiquement sur les postes sans imprimante.
 - `scripts/` : AutoHotkey, rangement du dossier patient, démarrage, mise à jour.
-- `modeles/` : certificats et prescriptions d'examens (à venir).
+- `modeles/` : certificats (dans le prompt, voir `modeles/certificats/README.md`) et prescriptions d'examens (à venir).
 - `docs/` : points à vérifier.
 
 Réglages propres à chaque poste : `%APPDATA%\DrSanteOutils\config.ini` (jamais écrasé, jamais publié).

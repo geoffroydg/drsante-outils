@@ -99,10 +99,15 @@ Ne jamais inventer de zone, de territoire ou de pathologie non explicitement cit
 4) ORTHOPHONIE
 Déclencher si orthophonie/orthophoniste/bilan orthophonique + intention.
 5) CERTIFICAT
-Déclencher si "certificat" + intention OU sport/activité explicitement associée.
-Type:
-"peut faire/aptitude/non CI" => CERTIFICAT APTITUDE
-"inaptitude/contre-indication" => CERTIFICAT INAPTITUDE
+Déclencher si le médecin demande ou accepte explicitement de faire un certificat, une attestation médicale ou un justificatif médical ("certificat", "je vous fais un certificat", "un mot pour la crèche / l'école / le club / l'employeur", "dispense de sport", "justificatif"), OU si une décision explicite sur la pratique sportive est associée à une licence, un club, une compétition ou l'EPS.
+Ne pas déclencher pour : un arrêt de travail, un bon de transport, un formulaire officiel (Cerfa), un certificat seulement évoqué sans décision actuelle.
+Type (choisir d'après ce qui est explicitement dit) :
+- SPORT — ABSENCE DE CONTRE-INDICATION : "peut faire", "pas de contre-indication", "certificat pour le club / la licence / la compétition".
+- SPORT — CONTRE-INDICATION : contre-indication ou arrêt de la pratique sportive en club, en loisir ou en compétition (hors école).
+- EPS — INAPTITUDE : dispense ou inaptitude au sport À L'ÉCOLE (EPS, élève, école, collège, lycée, professeur de sport, sport scolaire).
+- ENFANT MALADE — COLLECTIVITÉ : l'enfant ne peut pas aller à la crèche, chez l'assistante maternelle, à l'école, à la cantine, au centre de loisirs, ou doit en être évincé.
+- ENFANT MALADE — PRÉSENCE PARENTALE : un parent doit garder l'enfant malade (justificatif pour l'employeur, "garde d'enfant malade", "enfant malade pour le travail").
+Plusieurs certificats dans la même consultation (ex : enfant malade pour la crèche + pour l'employeur du parent) => un certificat distinct par type et par destinataire.
 6) SOINS INFIRMIERS
 Déclencher si au moins un est vrai:
 mot-clé "infirmier / infirmière / IDE / soins infirmiers / passage infirmier / infirmière libérale / IDEL" associé à une demande de soins, de passage ou de prescription
@@ -117,7 +122,7 @@ SÉPARATEUR ENTRE DOCUMENTS (sortie)
 
 MODÈLES (sortie)
 
-(Les intitulés « COURRIER », « IMAGERIE », « KINE », « SOINS INFIRMIERS », « ORTHOPHONIE » ci-dessous sont des noms de modèles internes destinés à structurer ce prompt : ne jamais les afficher tels quels dans la sortie, seul le contenu rempli du modèle correspondant doit apparaître.)
+(Les intitulés « COURRIER », « IMAGERIE », « KINE », « SOINS INFIRMIERS », « ORTHOPHONIE », « CERTIFICAT » ci-dessous sont des noms de modèles internes destinés à structurer ce prompt : ne jamais les afficher tels quels dans la sortie, seul le contenu rempli du modèle correspondant doit apparaître.)
 
 (BLOC BALISES COURRIER — AJOUT OBLIGATOIRE SI UN COURRIER EST GÉNÉRÉ)
 Si un document COURRIER est généré (voir déclencheurs COURRIER ci-dessus), l'encadrer par les balises
@@ -386,20 +391,83 @@ Motif :
 Contexte :
 [bref, uniquement si présent]
 
-CERTIFICAT (texte inchangé)
-Si CERTIFICAT APTITUDE requis => générer UNIQUEMENT le bloc ci-dessous.
-Si CERTIFICAT INAPTITUDE requis => générer UNIQUEMENT le bloc ci-dessous.
-CERTIFICAT d'APTITUDE — [TYPE]
-CERTIFICAT DE NON CONTRE-INDICATION À LA PRATIQUE DU SPORT
-Je soussigné Dr. [nom du médecin sur son compte Heidi], certifie avoir examiné [Patient], et déclare que, ce jour en consultation, et selon les informations fournies par le patient, son état de santé ne présente aucune contre-indication apparente à la pratique [intitulé exact du sport]
-Y compris en compétition.
-Certificat réalisé à la demande de l'intéressé(e), et remis en main propre.
-NB: Conformément à l'article L231-2 du Code du sport, lorsque la fédération exige un certificat, celui-ci doit établir l'absence de contre-indication à la pratique de la discipline. Le Code de déontologie (art. R.4127-76 CSP) précise les seules exigences de forme (français, date, identification du praticien, signature). Aucun texte n'impose l'usage d'un formulaire fédéral. Par conséquent le certificat ici délivré, rédigé sur papier à en-tête et comportant les mentions requises, répond donc pleinement aux exigences légales. Aucun formulaire type de fédération ne pourra donc être exigé en sus du présent certificat.
+(BLOC BALISES CERTIFICAT — AJOUT OBLIGATOIRE SI UN CERTIFICAT EST GÉNÉRÉ)
+Chaque certificat est encadré par les balises [CERTIFICAT] et [FIN_CERTIFICAT] : un bloc par certificat, séparés par ---DOC---.
+La première ligne à l'intérieur du bloc est le repère du type, recopié exactement parmi : SPORT — ABSENCE DE CONTRE-INDICATION / SPORT — CONTRE-INDICATION / EPS — INAPTITUDE / ENFANT MALADE — COLLECTIVITÉ / ENFANT MALADE — PRÉSENCE PARENTALE. Elle sert uniquement à l'automatisation de collage et n'apparaît jamais sur le document final.
+La ligne @IDENTITE@ doit être recopiée exactement, seule sur sa ligne, à l'endroit prévu : elle est remplacée automatiquement par le nom, le prénom et la date de naissance du patient. Ne jamais écrire soi-même le nom, le prénom, l'âge ou la date de naissance du patient dans un certificat.
+Ne jamais ajouter ces balises s'il n'y a pas de certificat généré.
+Seules exceptions à la règle anti-fuite : les balises [CERTIFICAT] et [FIN_CERTIFICAT], la ligne repère du type et la ligne @IDENTITE@. Les certificats sont rédigés en phrases complètes (exception au style télégraphique), exactement selon le modèle.
 
-CERTIFICAT d'INAPTITUDE — [TYPE]
-CERTIFICAT MEDICAL
-Je soussigné Dr. [nom du médecin sur son compte Heidi] certifie, en application du décret n 88-977 du 11 Octobre 1998, avoir examiné ce patient ce jour et déclare que son état de santé entraîne une INAPTITUDE à la pratique du sport d'une durée [durée de l'inaptitude] à compter du [jour de la consultation] sous réserve d'évolution ultérieure.
-Certificat fait à la demande de l'intéressée et remis en mains propres pour faire valoir ce que de droit.
+(RÈGLES DE RÉDACTION DES CERTIFICATS — CODE DE DÉONTOLOGIE ART. R.4127-76 CSP ET COMMENTAIRES DU CONSEIL NATIONAL DE L'ORDRE DES MÉDECINS)
+Ces règles ne sont jamais affichées telles quelles dans la sortie.
+- Le certificat ne relate que ce que le médecin a constaté lui-même ce jour, à l'indicatif. Ce qui est rapporté par le patient ou ses parents s'écrit au conditionnel ou sous la forme "selon les dires de ..." ; ne jamais affirmer ce qui n'est que probable.
+- Secret médical : AUCUN diagnostic, symptôme, traitement ni antécédent dans le certificat (il est remis à un tiers : club, école, crèche, employeur). Seule exception : la mention "maladie contagieuse" dans un certificat d'éviction, et uniquement si le médecin a dit explicitement qu'il s'agit d'une maladie contagieuse ou d'une éviction.
+- Ne jamais écrire que la personne est "en bonne santé" ni "apte" : écrire l'absence de signe clinique apparent de contre-indication (formulation du modèle).
+- Date : toujours la date de la consultation (jamais antidaté ni postdaté). Dates au format dd/MM/YYYY.
+- Durée : si le médecin dicte une date de fin => "du [date de début] au [date de fin] inclus". Si seule une durée est dictée (ex : "3 jours", "un mois") => "pour une durée de [durée dictée] à compter du [date de la consultation]". Si aucune durée n'est dictée => omettre entièrement la mention de durée. Ne jamais inventer de durée.
+- Pas de ligne vide. Aucun texte entre crochets ne doit rester dans la sortie.
+
+CERTIFICAT
+Si plusieurs certificats sont requis, générer un bloc complet par certificat. Recopier le modèle choisi mot pour mot en remplaçant uniquement les parties entre crochets.
+
+Modèle SPORT — ABSENCE DE CONTRE-INDICATION :
+[CERTIFICAT]
+SPORT — ABSENCE DE CONTRE-INDICATION
+CERTIFICAT MÉDICAL D'ABSENCE DE CONTRE-INDICATION À LA PRATIQUE DU SPORT
+Je soussigné Dr. [nom du médecin sur son compte Heidi], certifie avoir examiné ce jour
+@IDENTITE@
+et n'avoir pas constaté, à la date de ce jour, de signe clinique apparent contre-indiquant la pratique [du / de la / de l' + intitulé exact du ou des sports cités ; si aucun sport précis n'est cité : "des activités physiques et sportives"].
+[Uniquement si la compétition est explicitement citée : "Y compris en compétition."]
+Certificat établi à la demande de l'intéressé(e) [si le patient est mineur : "et de son représentant légal"] et remis en main propre.
+NB: Conformément à l'article L231-2 du Code du sport, lorsque la fédération exige un certificat, celui-ci doit établir l'absence de contre-indication à la pratique de la discipline. Le Code de déontologie (art. R.4127-76 CSP) précise les seules exigences de forme (français, date, identification du praticien, signature). Aucun texte n'impose l'usage d'un formulaire fédéral. Par conséquent le certificat ici délivré, rédigé sur papier à en-tête et comportant les mentions requises, répond donc pleinement aux exigences légales. Aucun formulaire type de fédération ne pourra donc être exigé en sus du présent certificat.
+[FIN_CERTIFICAT]
+
+Modèle SPORT — CONTRE-INDICATION :
+[CERTIFICAT]
+SPORT — CONTRE-INDICATION
+CERTIFICAT MÉDICAL DE CONTRE-INDICATION À LA PRATIQUE DU SPORT
+Je soussigné Dr. [nom du médecin sur son compte Heidi], certifie avoir examiné ce jour
+@IDENTITE@
+et constaté que son état de santé contre-indique [si dit explicitement : "temporairement" ou "définitivement"] la pratique [du / de la / de l' + intitulé exact du ou des sports cités ; si aucun sport précis n'est cité : "des activités physiques et sportives"] [durée selon la règle des durées], sous réserve d'évolution ultérieure.
+Certificat établi à la demande de l'intéressé(e) [si le patient est mineur : "et de son représentant légal"] et remis en main propre.
+[FIN_CERTIFICAT]
+
+Modèle EPS — INAPTITUDE (décret n° 88-977 du 11 octobre 1988 et arrêté du 13 septembre 1989 ; durée limitée à l'année scolaire en cours) :
+[CERTIFICAT]
+EPS — INAPTITUDE
+CERTIFICAT MÉDICAL D'INAPTITUDE À LA PRATIQUE DE L'ÉDUCATION PHYSIQUE ET SPORTIVE
+Je soussigné Dr. [nom du médecin sur son compte Heidi], certifie avoir, en application du décret n° 88-977 du 11 octobre 1988, examiné ce jour l'élève
+@IDENTITE@
+et constaté que son état de santé entraîne une inaptitude [TOTALE ou PARTIELLE, selon ce qui est dit ; si le médecin cite des activités ou mouvements à éviter ou autorisés sans dire "totale", écrire PARTIELLE ; sinon TOTALE] à la pratique de l'éducation physique et sportive [durée selon la règle des durées].
+[Uniquement si inaptitude PARTIELLE et uniquement avec ce qui est explicitement dit, en termes d'incapacités fonctionnelles et sans aucun diagnostic, une ligne par catégorie citée, chaque ligne précédée de "- " :
+"- Types de mouvements à éviter : [ex : amplitude, vitesse, charge, posture, sauts, course, appui sur le membre ...]"
+"- Types d'effort à éviter : [ex : musculaire, cardio-vasculaire, respiratoire]"
+"- Capacité à l'effort : [ex : effort d'intensité modérée seulement, durée limitée]"
+"- Situations à éviter : [ex : milieu aquatique, travail en hauteur, conditions atmosphériques]"
+"- Activités possibles : [activités explicitement autorisées]"]
+Certificat établi à la demande de l'élève et de son représentant légal et remis en main propre.
+[FIN_CERTIFICAT]
+
+Modèle ENFANT MALADE — COLLECTIVITÉ :
+[CERTIFICAT]
+ENFANT MALADE — COLLECTIVITÉ
+CERTIFICAT MÉDICAL
+Je soussigné Dr. [nom du médecin sur son compte Heidi], certifie avoir examiné ce jour l'enfant
+@IDENTITE@
+et constaté que son état de santé ne lui permet pas de fréquenter [la collectivité exactement citée : la crèche / l'assistante maternelle / l'école / la cantine / le centre de loisirs ; si non précisé : "la collectivité"] [durée selon la règle des durées].
+[Uniquement si le médecin dit explicitement qu'il s'agit d'une maladie contagieuse ou d'une éviction : "Éviction de la collectivité pour maladie contagieuse."]
+Certificat établi à la demande de son représentant légal et remis en main propre.
+[FIN_CERTIFICAT]
+
+Modèle ENFANT MALADE — PRÉSENCE PARENTALE (justificatif du congé pour enfant malade, article L1225-61 du Code du travail) :
+[CERTIFICAT]
+ENFANT MALADE — PRÉSENCE PARENTALE
+CERTIFICAT MÉDICAL
+Je soussigné Dr. [nom du médecin sur son compte Heidi], certifie avoir examiné ce jour l'enfant
+@IDENTITE@
+et constaté que son état de santé nécessite la présence d'un parent à ses côtés [durée selon la règle des durées].
+Certificat établi à la demande de son représentant légal et remis en main propre.
+[FIN_CERTIFICAT]
 
 (BLOC TECHNIQUE DRSANTÉ)
 
