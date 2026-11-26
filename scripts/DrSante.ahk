@@ -14,6 +14,7 @@
 ; WIN   + CLIC MOLETTE      = Ordonnance de kine (1 ordonnance par appui)
 ; CTRL+ALT + CLIC MOLETTE   = Ordonnance de soins infirmiers (1 par appui)
 ; ALT+MAJ  + CLIC MOLETTE   = Certificat medical (1 certificat par appui)
+; CTRL+MAJ + CLIC MOLETTE   = Ordonnance d'imagerie (1 ordonnance par appui)
 ; CTRL+ALT+V                = Vide definitivement le dossier patient
 ;
 ; Plusieurs courriers / ordonnances / certificats dans la meme consultation : chacun va
@@ -42,6 +43,8 @@ global INF_STATE_TEXT := ""
 global INF_STATE_INDEX := 0
 global CERT_STATE_TEXT := ""
 global CERT_STATE_INDEX := 0
+global IMG_STATE_TEXT := ""
+global IMG_STATE_INDEX := 0
 
 ; Ligne fixe inseree par le script (jamais par Heidi) apres la formule de politesse
 global COURRIER_MACRO_PREFIX := "Je vous adresse {CivilitePatient} {NomPatient} {PrenomPatient}, né(e) le {DateNaissancePatient}, agé(e) de {AgePatient} "
@@ -64,6 +67,7 @@ global RACCOURCIS := [
     {cle: "kine",      defaut: "#MButton",  drsante: true,  nom: "Ordonnance de kine",             action: (*) => ImportKineDrSante()},
     {cle: "infirmier", defaut: "^!MButton", drsante: true,  nom: "Ordonnance de soins infirmiers", action: (*) => ImportInfirmierDrSante()},
     {cle: "certificat", defaut: "!+MButton", drsante: true, nom: "Certificat medical",             action: (*) => ImportCertificatDrSante()},
+    {cle: "imagerie",  defaut: "^+MButton", drsante: true,  nom: "Ordonnance d'imagerie",          action: (*) => ImportImagerieDrSante()},
     {cle: "vider",     defaut: "^!v",       drsante: false, nom: "Vider le dossier patient",       action: (*) => ViderDossierPatient()}
 ]
 ActiverRaccourcis()
@@ -587,6 +591,74 @@ BuildCertificatParts(brut)
         joindre := false
     }
     return {type: type, corps: Trim(corps, " `t`r`n")}
+}
+
+;===================================================================
+; IMPORT ORDONNANCE(S) D'IMAGERIE  (Ctrl + Maj + clic molette)
+; Une ordonnance par modalite ; le gras Markdown eventuel est retire.
+;===================================================================
+ImportImagerieDrSante()
+{
+    global IMG_STATE_TEXT, IMG_STATE_INDEX
+
+    PrepareSend()
+    heidiText := A_Clipboard
+
+    if !InStr(heidiText,"[IMAGERIE]") or !InStr(heidiText,"[FIN_IMAGERIE]")
+    {
+        BlockInput(false)
+        MsgBox("Le presse-papiers ne contient pas d'ordonnance d'imagerie balisee"
+            . " (balises [IMAGERIE]...[FIN_IMAGERIE] introuvables).`n`n"
+            . "Import annule : rien n'a ete colle dans Dr Sante.`n`n"
+            . "Verifiez que Heidi a bien genere une ordonnance d'imagerie dans cette"
+            . " consultation et que le prompt Heidi est a jour.",
+            "Import annule", "Icon!")
+        return
+    }
+
+    imgsBruts := ExtractBlocks(heidiText, "IMAGERIE")
+    nbImgs := imgsBruts.Length
+
+    if (nbImgs = 0)
+    {
+        BlockInput(false)
+        MsgBox("Balises [IMAGERIE] trouvees mais contenu vide ou illisible. Rien n'a ete colle.",
+            "Import annule", "Icon!")
+        return
+    }
+
+    wrapped := false
+    if (heidiText = IMG_STATE_TEXT)
+    {
+        IMG_STATE_INDEX += 1
+        if (IMG_STATE_INDEX > nbImgs)
+        {
+            IMG_STATE_INDEX := 1
+            wrapped := true
+        }
+    }
+    else
+    {
+        IMG_STATE_TEXT := heidiText
+        IMG_STATE_INDEX := 1
+    }
+
+    texte := StrReplace(imgsBruts[IMG_STATE_INDEX], "**", "")
+
+    if (nbImgs > 1)
+    {
+        titre := Trim(StrSplit(texte, "`n", "`r")[1])
+        msg := wrapped
+            ? ("Retour a l'ordonnance d'imagerie 1/" nbImgs " - toutes avaient deja"
+                . " ete collees, on recommence.")
+            : ("Imagerie " IMG_STATE_INDEX "/" nbImgs " (" titre
+                . ") collee dans ce document.")
+        ShowCourrierTooltip(msg)
+    }
+
+    PasteToField(texte)
+    BlockInput(false)
+    A_Clipboard := heidiText
 }
 
 ;---------------------------------------------------------------

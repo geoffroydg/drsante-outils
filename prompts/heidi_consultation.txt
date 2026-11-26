@@ -83,6 +83,7 @@ modalité ≥1 + (site OU incidence OU indication "fracture/cassé/suspicion de/
 OU
 verbe d'action + modalité
 Mapping TYPE: IRM / SCANNER / DOPPLER / ECHOGRAPHIE / MAMMOGRAPHIE / RADIOGRAPHIE
+Règle multi-examens : une ordonnance par TYPE (modalité). Plusieurs zones ou incidences de la même modalité => une seule ordonnance (une ligne par examen). Modalités différentes (ex : radiographie + échographie) => une ordonnance distincte par modalité, séparées par ---DOC---.
 3) KINÉ
 Déclencher KINE si AU MOINS UN critère est vrai:
 le mot-clé "kiné" / "kinésithérapie" / "rééducation" / "séances de kiné" / "masso-kiné" / "MKDE"
@@ -159,13 +160,25 @@ Merci pour ce que vous ferez pour [lui ou elle en fonction du sexe du patient]
 Avec mes confraternelles salutations,
 Dr [Prénom - NOM du médecin]
 
+(BLOC BALISES IMAGERIE — AJOUT OBLIGATOIRE SI UNE ORDONNANCE D'IMAGERIE EST GÉNÉRÉE)
+Chaque ordonnance d'imagerie est encadrée par les balises [IMAGERIE] et [FIN_IMAGERIE] : un bloc par ordonnance (voir règle multi-examens), séparés par ---DOC---. Seules exceptions à la règle anti-fuite : ces deux balises.
+Ne jamais ajouter ces balises s'il n'y a pas d'ordonnance d'imagerie générée.
+RÈGLES DE RÉDACTION (jamais affichées) :
+- Examen : modalité + zone + côté + incidences / technique (injection, comparatif, en charge, etc.) uniquement si cités. Ne jamais ajouter une zone, un côté, une incidence ou une injection non cités. Une ligne par examen, chacune précédée de "- ".
+- Contexte clinique : UNE SEULE phrase courte, factuelle, qui résume pourquoi l'examen est demandé (motif, symptôme principal, durée, mécanisme, élément d'examen clé), uniquement avec ce qui a été dit. Pas de liste, pas de traitement, pas d'antécédent sans rapport.
+- Recherche : uniquement si le médecin cite explicitement ce qu'il cherche avec cet examen (hypothèses diagnostiques, éléments à éliminer : "pour voir si", "éliminer", "suspicion de", "on cherche"). Les écrire séparées par des virgules. Ne jamais déduire ni ajouter une hypothèse non citée. Si aucune hypothèse n'est citée => omettre entièrement la ligne "Recherche".
+- Pas de point d'interrogation, pas de ligne vide.
+
 IMAGERIE
+[IMAGERIE]
 ORDONNANCE D'IMAGERIE — [TYPE]
 A faire pratiquer en cabinet de radiologie.
 Chère Consœur, Cher Confrère,
-Merci de pratiquer [examen + zone + incidences si citées]
-Indication : [uniquement si présent]
-Contexte clinique : [uniquement si présent]
+Merci de pratiquer :
+- [examen]
+Contexte clinique : [une seule phrase]
+Recherche : [hypothèses diagnostiques citées, uniquement si citées]
+[FIN_IMAGERIE]
 
 (RÈGLES DE CHOIX DU LIBELLÉ KINÉ — NOMENCLATURE NGAP, VERSION DU 01/09/2026, TITRE XIV — AJOUT OBLIGATOIRE SI UN DOCUMENT KINÉ EST GÉNÉRÉ)
 Ces règles ne sont jamais affichées telles quelles dans la sortie. Elles servent uniquement à choisir, parmi les libellés officiels de la NGAP, celui qui décrit le plus précisément la situation clinique explicitement décrite.

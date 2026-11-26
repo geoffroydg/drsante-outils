@@ -38,7 +38,7 @@ $f.Text = $titre
 $f.StartPosition = 'CenterScreen'
 $f.FormBorderStyle = 'FixedSingle'
 $f.MaximizeBox = $false
-$f.ClientSize = New-Object System.Drawing.Size(640, 712)
+$f.ClientSize = New-Object System.Drawing.Size(640, 732)
 $f.Font = New-Object System.Drawing.Font('Segoe UI', 9.75)
 $gras = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
 
@@ -66,12 +66,12 @@ $btnDossier = New-Ctrl 'Button' $gc 15 76 210 36 'Ouvrir le dossier patient'
 $btnReglages = New-Ctrl 'Button' $gc 235 76 210 36 'Modifier les réglages'
 
 # Raccourcis
-$gr = New-Ctrl 'GroupBox' $f 12 450 616 212 'Raccourcis dans Dr Santé'
-$lblRac = New-Ctrl 'Label' $gr 15 24 586 136 ''
+$gr = New-Ctrl 'GroupBox' $f 12 450 616 232 'Raccourcis dans Dr Santé'
+$lblRac = New-Ctrl 'Label' $gr 15 24 586 156 ''
 $lblRac.Font = New-Object System.Drawing.Font('Consolas', 10)
-$btnRac = New-Ctrl 'Button' $gr 15 164 240 36 'Modifier les raccourcis'
+$btnRac = New-Ctrl 'Button' $gr 15 184 240 36 'Modifier les raccourcis'
 
-$btnFermer = New-Ctrl 'Button' $f 528 672 100 32 'Fermer'
+$btnFermer = New-Ctrl 'Button' $f 528 692 100 32 'Fermer'
 $btnFermer.DialogResult = 'Cancel'
 $f.CancelButton = $btnFermer
 
@@ -228,7 +228,7 @@ function Show-EditeurRaccourcis {
     $d.StartPosition = 'CenterParent'
     $d.FormBorderStyle = 'FixedDialog'
     $d.MaximizeBox = $false; $d.MinimizeBox = $false
-    $d.ClientSize = New-Object System.Drawing.Size(640, 440)
+    $d.ClientSize = New-Object System.Drawing.Size(640, 480)
     $d.Font = $f.Font
 
     $null = New-Ctrl 'Label' $d 12 10 616 40 ("Cochez les touches à maintenir et choisissez la touche ou le bouton. " +
@@ -252,9 +252,9 @@ function Show-EditeurRaccourcis {
         $y += 40
     }
 
-    $btnDefaut = New-Ctrl 'Button' $d 12 390 240 36 'Rétablir les valeurs par défaut'
-    $btnOk     = New-Ctrl 'Button' $d 400 390 110 36 'Enregistrer'
-    $btnAnn    = New-Ctrl 'Button' $d 518 390 110 36 'Annuler'
+    $btnDefaut = New-Ctrl 'Button' $d 12 430 240 36 'Rétablir les valeurs par défaut'
+    $btnOk     = New-Ctrl 'Button' $d 400 430 110 36 'Enregistrer'
+    $btnAnn    = New-Ctrl 'Button' $d 518 430 110 36 'Annuler'
     $btnAnn.DialogResult = 'Cancel'
     $d.CancelButton = $btnAnn
     $script:dlgRac = $d

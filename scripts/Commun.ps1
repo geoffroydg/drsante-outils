@@ -216,6 +216,7 @@ $script:RaccourcisDef = @(
     [pscustomobject]@{ Cle = 'kine';      Defaut = '#MButton';  Nom = 'Ordonnance de kiné' }
     [pscustomobject]@{ Cle = 'infirmier'; Defaut = '^!MButton'; Nom = 'Ordonnance infirmière' }
     [pscustomobject]@{ Cle = 'certificat'; Defaut = '!+MButton'; Nom = 'Certificat médical' }
+    [pscustomobject]@{ Cle = 'imagerie';  Defaut = '^+MButton'; Nom = "Ordonnance d'imagerie" }
     [pscustomobject]@{ Cle = 'vider';     Defaut = '^!v';       Nom = 'Vider le dossier patient' }
 )
 
