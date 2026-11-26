@@ -219,15 +219,26 @@ Set-IniValue 'general' 'etiquette' $(if ($choix.Etiquette) { '1' } else { '0' })
 if ($choix.Lbx) { Set-IniValue 'etiquette' 'lbx' $choix.Lbx }
 
 # --- 5) AutoHotkey v2 -------------------------------------------------------
+# 1er essai : winget (integre a Windows 10/11 a jour). Secours : installateur
+# officiel telecharge sur autohotkey.com, en mode silencieux.
 if (-not (Get-AhkExe)) {
     Info 'Installation de AutoHotkey v2 (une fenetre Windows peut demander une autorisation)...'
     $winget = Get-Command winget -ErrorAction SilentlyContinue
-    if (-not $winget) {
-        throw "winget est introuvable. Installez AutoHotkey v2 depuis https://www.autohotkey.com puis relancez l'installateur."
+    if ($winget) {
+        try { & winget install --id AutoHotkey.AutoHotkey -e --silent --accept-package-agreements --accept-source-agreements } catch { }
     }
-    & winget install --id AutoHotkey.AutoHotkey -e --silent --accept-package-agreements --accept-source-agreements
     if (-not (Get-AhkExe)) {
-        throw "AutoHotkey v2 n'a pas pu etre installe automatiquement. Installez-le depuis https://www.autohotkey.com puis relancez l'installateur."
+        Info 'Telechargement de AutoHotkey v2 depuis autohotkey.com...'
+        $setup = Join-Path $env:TEMP 'AutoHotkey_v2_setup.exe'
+        try {
+            Invoke-WebRequest -UseBasicParsing -OutFile $setup -Uri 'https://www.autohotkey.com/download/ahk-v2.exe' -Headers @{ 'User-Agent' = 'DrSanteOutils' }
+            Start-Process -FilePath $setup -ArgumentList '/silent' -Wait
+        }
+        catch { }
+        finally { Remove-Item -LiteralPath $setup -Force -ErrorAction SilentlyContinue }
+    }
+    if (-not (Get-AhkExe)) {
+        throw "AutoHotkey v2 n'a pas pu etre installe automatiquement. Installez-le depuis https://www.autohotkey.com (bouton Download, version v2) puis relancez l'installateur."
     }
 }
 
