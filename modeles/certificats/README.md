@@ -13,7 +13,7 @@ Collage dans Dr Santé : **Win + clic molette** → menu des documents → cliqu
 | ENFANT MALADE — COLLECTIVITÉ | crèche, assistante maternelle, école, cantine, éviction | Crèche : absence > 4 jours, maladie contagieuse (CNAF 2011-105, arrêté du 3 mai 1989) |
 | ENFANT MALADE — PRÉSENCE PARENTALE | justificatif pour l'employeur du parent | Code du travail L1225-61 |
 
-Identité du patient : Heidi écrit `@IDENTITE@`, le script la remplace par les macros Dr Santé `{NomPatient} {PrenomPatient}, né(e) le {DateNaissancePatient},`.
+Identité du patient : Heidi écrit directement les macros Dr Santé `{NomPrenomPatient}, né(e) le {DateNaissancePatient},` (remplacées par Dr Santé ; marche aussi en copier-coller manuel). Autre macro disponible : `{AgePatient}`.
 
 ## Règles appliquées (Ordre des médecins, commentaire de l'art. 76)
 

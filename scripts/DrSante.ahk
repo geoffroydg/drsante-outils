@@ -46,8 +46,9 @@ global COURRIER_MACRO_PREFIX := "Je vous adresse {CivilitePatient} {NomPatient} 
 ; Macros Dr Sante inserees quand Heidi n'a rien redige pour antecedents / traitements
 global COURRIER_MACRO_ANTECEDENTS := "{ListePathologiesAntecedents}"
 global COURRIER_MACRO_TRAITEMENTS := "{ListeCompleteTraitements}"
-; Identite du patient dans les certificats (remplace la ligne @IDENTITE@ ecrite par Heidi)
-global CERTIFICAT_MACRO_IDENTITE := "{NomPatient} {PrenomPatient}, né(e) le {DateNaissancePatient},"
+; Identite du patient dans les certificats. Heidi ecrit directement les macros
+; Dr Sante ; @IDENTITE@ (ancien prompt) est encore remplace par securite.
+global CERTIFICAT_MACRO_IDENTITE := "{NomPrenomPatient}, né(e) le {DateNaissancePatient},"
 
 ;---------------------------------------------------------------
 ; RACCOURCIS : lus dans config.ini [raccourcis] (syntaxe AutoHotkey v2 :
