@@ -66,7 +66,8 @@ $btnRac = Add-Bouton $gr 16 396 220 'Modifier les raccourcis'
 # Pied de fenetre
 $lblVersion = Add-Ctrl 'Label' $f 22 556 500 20 ''
 $lblVersion.ForeColor = $script:Theme.TexteDoux; $lblVersion.Font = $script:PolicePetite
-if ($version) { $lblVersion.Text = "Version installée : $version" }
+$lblVersion.Text = $script:Auteur
+if ($version) { $lblVersion.Text += "  ·  version installée : $version" }
 $btnFermer = Add-Bouton $f 790 548 110 'Fermer'
 $btnFermer.DialogResult = 'Cancel'
 $f.CancelButton = $btnFermer

@@ -40,3 +40,6 @@ Après toute modification : double-clic sur `Publier.bat` (ou demander à Claude
 Réglages propres à chaque poste : `%APPDATA%\DrSanteOutils\config.ini` (jamais écrasé, jamais publié).
 
 **Aucune donnée patient dans ce dépôt.**
+
+---
+Conçu par le Dr Geoffroy Dagher.

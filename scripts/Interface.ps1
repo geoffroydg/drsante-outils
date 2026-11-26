@@ -37,6 +37,9 @@ $script:Theme = @{
     Rouge         = New-Couleur '#C0392B'
     Touche        = New-Couleur '#EEF1F5'
 }
+# Auteur, affiche dans les fenetres
+$script:Auteur = 'Conçu par le Dr Geoffroy Dagher'
+
 $script:Police       = New-Object System.Drawing.Font('Segoe UI', 9.75)
 $script:PoliceGras   = New-Object System.Drawing.Font('Segoe UI Semibold', 10.5)
 $script:PoliceTitre  = New-Object System.Drawing.Font('Segoe UI Semibold', 16)

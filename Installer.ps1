@@ -105,6 +105,10 @@ function Show-FenetreInstallation($c) {
 
     $cbBur = Add-Case $co 16 198 "Icône « Dr Santé outils » sur le bureau (sinon : menu Démarrer)" $c.Bureau
 
+    if ($script:Auteur) {
+        $cr = Add-Ctrl 'Label' $f 22 512 320 20 $script:Auteur
+        $cr.ForeColor = $script:Theme.TexteDoux; $cr.Font = $script:PolicePetite
+    }
     $ok = Add-Bouton $f 352 504 110 'Installer' -Primaire
     $ok.DialogResult = 'OK'
     $f.AcceptButton = $ok
