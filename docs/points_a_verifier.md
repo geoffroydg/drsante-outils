@@ -6,3 +6,4 @@
 4. **Étiquettes** : nécessitent P-touch Editor + SDK b-PAC et le modèle `.lbx` sur le poste concerné.
 5. **Certificats** : vérifier que Heidi recopie bien `{NomPrenomPatient}` et `{DateNaissancePatient}` sans les modifier, et que Dr Santé les remplace dans un document de type certificat.
 6. **NB du certificat sport** : SUPPRIMÉ à la demande du médecin (contredisait le CNOM : chaque fédération fixe le contenu des examens du CACI).
+7. **Nom du médecin** : `{AuteurNomLong}` (certificats + signature des courriers). Vérifier si la macro inclut déjà « Dr » ; sinon, ajouter « Dr » devant dans le prompt.
