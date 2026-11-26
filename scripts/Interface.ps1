@@ -101,9 +101,9 @@ function Add-Entete($Form, [string]$Titre, [string]$SousTitre) {
     $p = Add-Ctrl 'Panel' $Form 0 0 $Form.ClientSize.Width 72 ''
     $p.BackColor = $script:Theme.Primaire
     $p.Anchor = 'Top, Left, Right'
-    $t = Add-Ctrl 'Label' $p 22 10 ($Form.ClientSize.Width - 44) 32 $Titre
+    $t = Add-Ctrl 'Label' $p 22 10 520 32 $Titre
     $t.Font = $script:PoliceTitre; $t.ForeColor = [System.Drawing.Color]::White
-    $s = Add-Ctrl 'Label' $p 24 43 ($Form.ClientSize.Width - 44) 20 $SousTitre
+    $s = Add-Ctrl 'Label' $p 24 43 ([Math]::Min(520, $Form.ClientSize.Width - 44)) 20 $SousTitre
     $s.Font = $script:Police; $s.ForeColor = New-Couleur '#D6E6F2'
     return $p
 }

@@ -22,7 +22,15 @@ $f = New-Fenetre $titre 920 588
 $version = ''
 if (Test-Path -LiteralPath $script:ShaFile) { $version = (Get-Content -LiteralPath $script:ShaFile -Raw).Trim() }
 if ($version.Length -gt 7) { $version = $version.Substring(0, 7) }
-$null = Add-Entete $f 'Dr Santé outils' ('Heidi ' + [char]0x2192 + ' Dr Santé  ·  outils partagés entre confrères')
+$entete = Add-Entete $f 'Dr Santé outils' ('Heidi ' + [char]0x2192 + ' Dr Santé  ·  outils partagés entre confrères')
+
+# Version test (visible seulement sur le poste du testeur)
+$lblTest = Add-Ctrl 'Label' $entete 560 24 0 0 'VERSION TEST'
+$lblTest.AutoSize = $true
+$lblTest.BackColor = $script:Theme.Orange; $lblTest.ForeColor = [System.Drawing.Color]::White
+$lblTest.Font = $script:PoliceGras
+$lblTest.Padding = New-Object System.Windows.Forms.Padding(8, 4, 8, 4)
+$btnValider = Add-Bouton $entete 700 19 200 'Valider pour les confrères'
 
 # Colonne gauche : prompt Heidi
 $gp = Add-Carte $f 20 90 430 176 'Prompt Heidi'
@@ -299,7 +307,51 @@ function Show-EditeurRaccourcis {
 
 $btnRac.Add_Click({ Show-EditeurRaccourcis })
 
+# --- Version test (poste du testeur) ---------------------------------------
+# Ctrl + Maj + T dans cette fenetre : active / desactive le canal test.
+function Update-Canal {
+    if (Test-CanalTest) {
+        $f.Text = "$titre  —  VERSION TEST"
+        $btnValider.Visible = $true; $lblTest.Visible = $true
+    }
+    else {
+        $f.Text = $titre
+        $btnValider.Visible = $false; $lblTest.Visible = $false
+    }
+}
+
+$f.KeyPreview = $true
+$f.Add_KeyDown({
+    param($s, $e)
+    if ($e.Control -and $e.Shift -and $e.KeyCode -eq 'T') {
+        $e.SuppressKeyPress = $true
+        if (Test-CanalTest) {
+            $r = [System.Windows.Forms.MessageBox]::Show("Quitter la version test et revenir à la version des confrères ?",
+                $titre, 'YesNo', 'Question')
+            if ($r -eq 'Yes') { Set-IniValue 'depot' 'canal' 'normal' }
+        }
+        else {
+            $r = [System.Windows.Forms.MessageBox]::Show(("Activer la VERSION TEST sur ce poste ?`n`n" +
+                "Ce poste recevra les nouveautés avant les confrères, pour les essayer. " +
+                "Réservé au testeur (Dr Dagher)."), $titre, 'YesNo', 'Warning')
+            if ($r -eq 'Yes') { Set-IniValue 'depot' 'canal' 'test' }
+        }
+        Update-Canal
+        Update-EtatMaj
+    }
+})
+
+$btnValider.Add_Click({
+    $r = [System.Windows.Forms.MessageBox]::Show(("Envoyer la version test actuelle à tous les confrères ?`n`n" +
+        "La page GitHub va s'ouvrir (connectez-vous si besoin) :`n" +
+        "1. cliquez sur « Run workflow » (à droite),`n" +
+        "2. puis sur le bouton vert « Run workflow ».`n`n" +
+        "Les confrères la recevront à leur prochain démarrage de Windows."), $titre, 'OKCancel', 'Information')
+    if ($r -eq 'OK') { Start-Process $script:PageValidation }
+})
+
 # --- Affichage -------------------------------------------------------------
+Update-Canal
 Update-EtatPrompt
 Update-EtatPoste
 Update-EtatRaccourcis

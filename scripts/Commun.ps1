@@ -92,9 +92,16 @@ function Get-GitHubHeaders {
 }
 
 # --- Depot GitHub -----------------------------------------------------------
+# Canal de mise a jour : 'test' (poste du testeur : recoit les nouveautes en
+# premier, branche test) ou normal (branche main, validee pour les confreres).
+# Seules ces deux branches officielles sont possibles.
+function Test-CanalTest { return ((Get-IniValue 'depot' 'canal' '') -eq 'test') }
+function Get-BrancheMaj { if (Test-CanalTest) { return 'test' } else { return 'main' } }
+$script:PageValidation = 'https://github.com/geoffroydg/drsante-outils/actions/workflows/valider.yml'
+
 function Get-RemoteSha {
     $depot  = $script:DepotOfficiel
-    $branch = $script:BrancheOfficiel
+    $branch = Get-BrancheMaj   # main, ou test sur le poste du testeur
     $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 15 `
         -Uri "https://api.github.com/repos/$depot/commits/$branch" `
         -Headers (Get-GitHubHeaders 'application/vnd.github.sha')
@@ -110,7 +117,7 @@ function Get-RemoteSha {
 function Install-DepotZip {
     param([string]$Ref = '')
     $depot  = $script:DepotOfficiel
-    $branch = $script:BrancheOfficiel
+    $branch = Get-BrancheMaj   # main, ou test sur le poste du testeur
     if ($Ref -match '^[0-9a-f]{40}$') { $branch = $Ref }
 
     $tmp = Join-Path $env:TEMP ('drsante_' + [guid]::NewGuid().ToString('N'))
