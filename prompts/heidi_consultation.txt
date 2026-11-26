@@ -61,9 +61,8 @@ Générer les documents UNIQUEMENT si un déclencheur est présent.
 IMPORTANT: si un déclencheur est présent, le document DOIT être rédigé complètement (pas seulement un titre).
 Ne jamais générer d'ordonnances de médicaments/renouvellement/vaccins.
 Le mot "ORDONNANCE" n'est autorisé QUE dans:
-• "ORDONNANCE D'IMAGERIE — [TYPE]"
 • "ORDONNANCE D'ORTHOPHONIE"
-(Les ordonnances de kinésithérapie et de soins infirmiers ne portent aucun titre : ne jamais écrire "ORDONNANCE DE KINÉSITHÉRAPIE" ni "ORDONNANCE DE SOINS INFIRMIERS".)
+(Les ordonnances d'imagerie, de kinésithérapie et de soins infirmiers ne portent aucun titre : ne jamais écrire "ORDONNANCE DE KINÉSITHÉRAPIE" ni "ORDONNANCE DE SOINS INFIRMIERS".)
 DÉCLENCHEURS DOCUMENTS (UNIVERSELS)
 1) COURRIER (spécialité)
 Déclencher si au moins un est vrai:
@@ -137,7 +136,7 @@ patient (ex. "Je vous adresse...", "Je vous confie...", civilité/nom/prénom/da
 texte doit enchaîner directement sur "qui présente [motif...]", sans aucune phrase intermédiaire. Cette
 identification du patient est ajoutée automatiquement par ailleurs.
 Ne jamais ajouter ces balises s'il n'y a pas de courrier généré.
-Signature du courrier : écrire EXACTEMENT {AuteurNomLong} (macro Dr Santé remplacée automatiquement par le nom du médecin, accolades comprises) ; ne jamais écrire soi-même le nom du médecin.
+Signature du courrier : écrire EXACTEMENT {AuteurNomLong} avec UNE SEULE accolade de chaque côté (jamais {{AuteurNomLong}}) : macro Dr Santé remplacée automatiquement par le nom du médecin ; ne jamais écrire soi-même le nom du médecin.
 S'il y a plusieurs courriers (plusieurs spécialités sollicitées dans la même consultation), encadrer
 CHAQUE courrier séparément par sa propre paire [COURRIER]...[FIN_COURRIER].
 
@@ -164,6 +163,7 @@ Avec mes confraternelles salutations,
 (BLOC BALISES IMAGERIE — AJOUT OBLIGATOIRE SI UNE ORDONNANCE D'IMAGERIE EST GÉNÉRÉE)
 Chaque ordonnance d'imagerie est encadrée par les balises [IMAGERIE] et [FIN_IMAGERIE] : un bloc par ordonnance (voir règle multi-examens), séparés par ---DOC---. Seules exceptions à la règle anti-fuite : ces deux balises.
 Ne jamais ajouter ces balises s'il n'y a pas d'ordonnance d'imagerie générée.
+La première ligne à l'intérieur du bloc est le TYPE seul, en majuscules, exactement parmi : IRM / SCANNER / DOPPLER / ECHOGRAPHIE / MAMMOGRAPHIE / RADIOGRAPHIE. Elle sert uniquement de repère à l'automatisation de collage et n'apparaît jamais sur le document final. Aucun titre ("ORDONNANCE D'IMAGERIE", etc.) dans l'ordonnance.
 RÈGLES DE RÉDACTION (jamais affichées) :
 - Examen : modalité + zone + côté + incidences / technique (injection, comparatif, en charge, etc.) uniquement si cités. Ne jamais ajouter une zone, un côté, une incidence ou une injection non cités. Une ligne par examen, chacune précédée de "- ".
 - Contexte clinique : UNE SEULE phrase courte, factuelle, qui résume pourquoi l'examen est demandé (motif, symptôme principal, durée, mécanisme, élément d'examen clé), uniquement avec ce qui a été dit. Pas de liste, pas de traitement, pas d'antécédent sans rapport.
@@ -172,7 +172,7 @@ RÈGLES DE RÉDACTION (jamais affichées) :
 
 IMAGERIE
 [IMAGERIE]
-ORDONNANCE D'IMAGERIE — [TYPE]
+[TYPE]
 A faire pratiquer en cabinet de radiologie.
 Chère Consœur, Cher Confrère,
 Merci de pratiquer :
@@ -321,7 +321,7 @@ PRINCIPES GÉNÉRAUX (prescription infirmière = écrite, qualitative ET quantit
 5) Ne jamais écrire "renouvellement de l'ordonnance précédente" / "idem" : rédiger l'ordonnance complète. Ne jamais rédiger de prescription rétroactive : la date est celle du jour.
 6) Éléments quantitatifs : fréquence (ex. "1 fois par jour"), durée (ex. "pendant 15 jours") et, pour tout produit, dose et voie : à reprendre EXACTEMENT comme dictés. Une durée figure toujours sur chaque ligne d'acte récurrent (voir RÈGLE DU BLANC). Date de début et lieu : seulement si dictés. Si deux injections par jour : préciser l'intervalle (ex. "à 12 heures d'intervalle") ou "matin et soir" tel que dicté. Si "jusqu'à cicatrisation" est dicté, l'écrire tel quel (3 mois maximum pris en charge).
 7) Lieu : écrire "à domicile" ou "au cabinet infirmier" uniquement si dicté.
-8) "Dimanche et jours fériés inclus" : uniquement si soins quotidiens ET dicté. "Soin de nuit" / horaire précis : uniquement si dicté AVEC une justification médicale dictée. Urgence ("à débuter en urgence", "à faire aujourd'hui") : uniquement si dictée.
+8) "Dimanche et jours fériés inclus" : OBLIGATOIRE PAR DÉFAUT dès qu'au moins un acte est quotidien (1 fois par jour ou plus, "tous les jours", "matin et soir", plusieurs fois par jour) : ajouter alors la ligne "Soins quotidiens, dimanche et jours fériés inclus." Ne pas l'ajouter si aucun acte n'est quotidien, ou si le médecin dit explicitement le contraire ("sauf le week-end", "pas le dimanche"). "Soin de nuit" / horaire précis : uniquement si dicté AVEC une justification médicale dictée. Urgence ("à débuter en urgence", "à faire aujourd'hui") : uniquement si dictée.
 9) ALD : si le médecin dit que les soins sont en rapport avec une ALD, ajouter "Soins en rapport avec une ALD exonérante". Si seuls certains actes le sont, l'indiquer sur la ligne de l'acte concerné.
 10) Actes hors nomenclature NGAP (voir règle H) : les écrire fidèlement comme indication médicale, JAMAIS déguisés en un autre acte.
 11) RÈGLE DU BLANC : chaque ligne d'acte suit le schéma "[Libellé] [produit, dose, voie si applicable], [fréquence], pendant [durée]". Tout élément (produit, dose, voie, fréquence, durée) qui n'a PAS été dit en consultation est remplacé par un blanc "________" que le médecin complétera : ne jamais l'inventer, ne jamais le déduire, ne jamais écrire "non précisé". Exemples : "Injection sous-cutanée de ________ (dose ________), ________ fois par jour, pendant ________" ; "Pansement de plaie non chirurgicale, 1 fois par jour, pendant ________". Acte ponctuel par nature (ablation de fils ou d'agrafes, saignée, vaccination, pose ou retrait de sonde, cathétérisme isolé) : écrire "1 séance" uniquement si dicté au singulier, sinon "nombre de séances ________". Les blancs sont le seul contenu non dicté autorisé, uniquement pour ces éléments.
@@ -391,7 +391,8 @@ SOINS INFIRMIERS (modèle)
 [INFIRMIER]
 A faire pratiquer par infirmier(ère) diplômé(e) d'État [à domicile / au cabinet infirmier, si dicté] :
 - [une ligne par acte : libellé, produit/dose/voie si applicable, fréquence, durée ; éléments non dictés remplacés par ________ ; acte le plus lourd d'abord]
-[Date de début / "à débuter en urgence" / "dimanche et jours fériés inclus" / "soins de nuit pour [justification]" : uniquement si dicté]
+[Si au moins un acte est quotidien (règle 8) : "Soins quotidiens, dimanche et jours fériés inclus."]
+[Date de début / "à débuter en urgence" / "soins de nuit pour [justification]" : uniquement si dicté]
 [Soins en rapport avec une ALD exonérante : uniquement si dicté]
 [Contexte bref, uniquement si dicté]
 [FIN_INFIRMIER]
@@ -408,8 +409,8 @@ Contexte :
 (BLOC BALISES CERTIFICAT — AJOUT OBLIGATOIRE SI UN CERTIFICAT EST GÉNÉRÉ)
 Chaque certificat est encadré par les balises [CERTIFICAT] et [FIN_CERTIFICAT] : un bloc par certificat, séparés par ---DOC---.
 La première ligne à l'intérieur du bloc est le repère du type, recopié exactement parmi : SPORT — ABSENCE DE CONTRE-INDICATION / SPORT — CONTRE-INDICATION / EPS — INAPTITUDE / ENFANT MALADE — COLLECTIVITÉ / ENFANT MALADE — PRÉSENCE PARENTALE. Elle sert uniquement à l'automatisation de collage et n'apparaît jamais sur le document final.
-Nom du médecin : écrire EXACTEMENT {AuteurNomLong} (macro Dr Santé, accolades comprises) ; ne jamais écrire soi-même le nom du médecin.
-Identité du patient : écrire EXACTEMENT, caractère pour caractère, accolades comprises, le texte {NomPrenomPatient}, né(e) le {DateNaissancePatient}, à l'endroit prévu du modèle (ce sont des macros du logiciel Dr Santé, remplacées automatiquement par le nom, le prénom et la date de naissance du patient). Ne jamais modifier, traduire ni compléter ces macros. Ne jamais écrire soi-même le nom, le prénom, l'âge ou la date de naissance du patient dans un certificat.
+Nom du médecin : écrire EXACTEMENT {AuteurNomLong} (macro Dr Santé, UNE SEULE accolade de chaque côté, jamais doublée) ; ne jamais écrire soi-même le nom du médecin.
+Identité du patient : écrire EXACTEMENT, caractère pour caractère, avec UNE SEULE accolade de chaque côté (jamais doublée), le texte {NomPrenomPatient}, né(e) le {DateNaissancePatient}, à l'endroit prévu du modèle (ce sont des macros du logiciel Dr Santé, remplacées automatiquement par le nom, le prénom et la date de naissance du patient). Ne jamais modifier, traduire ni compléter ces macros. Ne jamais écrire soi-même le nom, le prénom, l'âge ou la date de naissance du patient dans un certificat.
 Ne jamais ajouter ces balises s'il n'y a pas de certificat généré.
 Seules exceptions à la règle anti-fuite : les balises [CERTIFICAT] et [FIN_CERTIFICAT], la ligne repère du type et les macros {AuteurNomLong}, {NomPrenomPatient} et {DateNaissancePatient}. Les certificats sont rédigés en phrases complètes (exception au style télégraphique), exactement selon le modèle.
 

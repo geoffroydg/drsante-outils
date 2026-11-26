@@ -458,12 +458,32 @@ ListerDocuments(heidiText)
 
     for b in ExtractBlocks(heidiText, "IMAGERIE")
     {
-        texte := StrReplace(b, "**", "")
-        titre := Trim(StrSplit(texte, "`n", "`r")[1])
-        typeImg := RegExMatch(titre, "[—–-]\s*(.+)$", &mt) ? mt[1] : titre
-        docs.Push({libelle: "Imagerie — " typeImg, texte: texte})
+        p := BuildImagerieParts(b)
+        docs.Push({libelle: "Imagerie — " (p.type != "" ? p.type : ResumeLigne(p.corps)), texte: p.corps})
     }
     return docs
+}
+
+; Retire la ligne repere du type (IRM, SCANNER... ; ancien prompt :
+; "ORDONNANCE D'IMAGERIE — TYPE") et le gras Markdown.
+BuildImagerieParts(brut)
+{
+    lignes := StrSplit(StrReplace(brut, "**", ""), "`n", "`r")
+    typeImg := ""
+    debut := 1
+    if (lignes.Length >= 1)
+    {
+        t := Trim(lignes[1])
+        if RegExMatch(t, "i)^(ORDONNANCE D'IMAGERIE\s*[—–-]\s*)?(IRM|SCANNER|DOPPLER|ECHOGRAPHIE|ÉCHOGRAPHIE|MAMMOGRAPHIE|RADIOGRAPHIE)\s*$", &mt)
+        {
+            typeImg := mt[2]
+            debut := 2
+        }
+    }
+    corps := ""
+    Loop lignes.Length - debut + 1
+        corps .= (A_Index = 1 ? "" : "`r`n") . lignes[debut + A_Index - 1]
+    return {type: typeImg, corps: Trim(corps, " `t`r`n")}
 }
 
 ; Premiere ligne non vide d'un bloc, raccourcie (sert de repere dans le menu)
@@ -628,6 +648,8 @@ PasteToField(textValue)
         return
     }
 
+    ; Macros Dr Sante parfois ecrites {{Macro}} par Heidi : une seule paire
+    textValue := RegExReplace(textValue, "\{\{(\w+)\}\}", "{$1}")
     A_Clipboard := textValue
     Sleep(150)
     Send("^v")
