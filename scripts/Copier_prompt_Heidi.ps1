@@ -1,6 +1,7 @@
 ﻿# Copie le prompt Heidi a jour dans le presse-papiers (variante adaptee a ce PC).
 Add-Type -AssemblyName System.Windows.Forms
 . (Join-Path $PSScriptRoot 'Commun.ps1')
+. (Join-Path $PSScriptRoot 'Interface.ps1')   # messages nets sur ecran agrandi
 
 try {
     $avec = Copy-HeidiPrompt

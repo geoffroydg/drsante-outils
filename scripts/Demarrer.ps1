@@ -8,6 +8,7 @@ param([switch]$Manuel)
 $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot 'Commun.ps1')
 Add-Type -AssemblyName System.Windows.Forms
+. (Join-Path $PSScriptRoot 'Interface.ps1')   # messages nets sur ecran agrandi
 $titre = 'Dr Sante - mise a jour'
 
 if ($Manuel) { Open-Outil; exit }
