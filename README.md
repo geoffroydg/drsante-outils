@@ -9,13 +9,18 @@ Coller dans PowerShell (menu Démarrer → « PowerShell ») :
 - Dépôt public : `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/geoffroydg/drsante-outils/main/Installer.ps1)))`
 - Dépôt privé : la ligne exacte (avec jeton) est affichée par `Publier.bat`.
 
-L'installateur ouvre une fenêtre : dossier d'installation des outils, dossier patient (choisi ou créé), imprimante à étiquettes, lancement au démarrage de Windows **en mode administrateur** (une seule autorisation Windows, via une tâche planifiée « Dr Sante outils »), raccourci bureau « Copier prompt Heidi ». Il installe AutoHotkey v2, crée le menu Démarrer « Dr Sante outils » (Copier prompt Heidi, Rechercher une mise à jour) et propose de copier le prompt Heidi. Relancer l'installateur permet de changer ces choix.
+L'installateur ouvre une fenêtre : dossier d'installation des outils, dossier patient (choisi ou créé), imprimante à étiquettes, lancement au démarrage de Windows **en mode administrateur** (une seule autorisation Windows, via une tâche planifiée « Dr Sante outils »), icône sur le bureau (facultatif). Il installe AutoHotkey v2 puis ouvre la fenêtre **Dr Santé outils**.
+
+## Fenêtre « Dr Santé outils » (menu Démarrer)
+
+- **Prompt Heidi** : indicateur vert (à jour) ou orange (à copier dans Heidi) selon la version des scripts installés ; bouton « Copier le prompt Heidi » ; affichage du texte.
+- **Mises à jour** : vérification et installation en un clic.
+- **Ce poste** : dossier patient, mode de démarrage, « Modifier les réglages » (relance l'installateur).
+- Rappel des raccourcis clavier.
 
 ## Au quotidien
 
-- À l'ouverture de Windows, si une nouvelle version est publiée : une fenêtre propose de l'installer (Oui / Non). Sans réponse « Oui », elle est reproposée au démarrage suivant.
-- Vérification à la demande : menu Démarrer → « Dr Sante outils » → « Rechercher une mise à jour ».
-- Si le prompt Heidi change : une fenêtre propose de le copier ; il suffit de le coller dans Heidi.
+- À l'ouverture de Windows, si une nouvelle version est publiée : une fenêtre propose de l'installer (Oui / Non), sinon reproposée au démarrage suivant. Si le prompt Heidi a changé, elle propose d'ouvrir Dr Santé outils pour le copier.
 - Raccourcis (dans Dr Santé) : Ctrl+clic molette = consultation adulte · Alt+clic molette = enfant · Maj+clic molette = courrier · Win+clic molette = kiné · Ctrl+Alt+clic molette = soins infirmiers · Ctrl+Alt+V = vider le dossier patient.
 
 ## Pour l'administrateur

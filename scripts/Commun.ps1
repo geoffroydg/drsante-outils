@@ -169,8 +169,9 @@ function Stop-ScriptProcess {
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
 
-# Copie le prompt Heidi (variante selon config) dans le presse-papiers
-function Copy-HeidiPrompt {
+# --- Prompt Heidi ----------------------------------------------------------
+# Texte du prompt adapte a ce poste (bloc etiquette retire si pas d'imprimante)
+function Get-HeidiPromptText {
     $src = Join-Path $script:AppDir 'prompts\heidi_consultation.txt'
     if (-not (Test-Path -LiteralPath $src)) { throw 'Prompt Heidi introuvable (installation incomplete).' }
     $avecEtiquette = ((Get-IniValue 'general' 'etiquette' '0') -eq '1')
@@ -181,6 +182,60 @@ function Copy-HeidiPrompt {
         if ($line -match '^#@ETIQUETTE_FIN')   { $skip = $false; continue }
         if (-not $skip) { $out.Add($line) }
     }
-    Set-Clipboard -Value ($out -join "`r`n")
-    return $avecEtiquette
+    return ($out -join "`r`n")
+}
+
+# Empreinte courte du prompt (change des que le texte ou la variante change)
+function Get-HeidiPromptVersion {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $h = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes((Get-HeidiPromptText))) }
+    finally { $sha.Dispose() }
+    return ([BitConverter]::ToString($h) -replace '-', '').Substring(0, 8)
+}
+
+# Le dernier prompt copie correspond-il aux scripts installes ?
+function Test-HeidiPromptAJour {
+    return ((Get-IniValue 'heidi' 'prompt_copie' '') -eq (Get-HeidiPromptVersion))
+}
+
+# Copie le prompt dans le presse-papiers et note sa version. Renvoie $true si
+# la variante "avec etiquette" a ete copiee.
+function Copy-HeidiPrompt {
+    Set-Clipboard -Value (Get-HeidiPromptText)
+    Set-IniValue 'heidi' 'prompt_copie' (Get-HeidiPromptVersion)
+    return ((Get-IniValue 'general' 'etiquette' '0') -eq '1')
+}
+
+# --- (Re)lancement des outils (AutoHotkey + surveillance dossier patient) ----
+# -ParTache : si le demarrage administrateur est configure, relance via la
+# tache planifiee (mode administrateur sans demande d'autorisation).
+function Restart-Outils {
+    param([switch]$ParTache)
+    if ($ParTache -and (Get-IniValue 'general' 'demarrage' '') -eq 'tache') {
+        try { Start-ScheduledTask -TaskName $script:NomTache -ErrorAction Stop; return } catch { }
+    }
+    $ahk = Get-AhkExe
+    $ahkScript = Join-Path $script:AppDir 'scripts\DrSante.ahk'
+    $watcher   = Join-Path $script:AppDir 'scripts\Aplatir_dossier_patient.ps1'
+
+    # Arrete l'ancienne surveillance pour relancer la version a jour
+    Stop-ScriptProcess 'Aplatir_dossier_patient.ps1'
+    Start-Sleep -Milliseconds 500
+
+    if ($ahk -and (Test-Path -LiteralPath $ahkScript)) {
+        # #SingleInstance Force : remplace l'ancienne instance
+        Start-Process -FilePath $ahk -ArgumentList ('"{0}"' -f $ahkScript)
+    }
+    # Le script gere lui-meme l'instance unique (mutex)
+    if (Test-Path -LiteralPath $watcher) {
+        Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList @(
+            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $watcher)
+        )
+    }
+}
+
+# Ouvre la fenetre "Dr Sante outils"
+function Open-Outil {
+    $vbs = Join-Path $script:AppDir 'scripts\Lancer_silencieux.vbs'
+    Start-Process -FilePath 'wscript.exe' -ArgumentList ('"{0}" "Outil.ps1"' -f $vbs)
 }

@@ -1,4 +1,4 @@
-﻿﻿# ===========================================================================
+﻿# ===========================================================================
 # INSTALLATION de "Dr Sante - outils" sur un ordinateur (poste d'un confrere).
 # Une fenetre propose : dossier d'installation, dossier patient, imprimante a
 # etiquettes, lancement au demarrage (mode administrateur), raccourci bureau.
@@ -113,7 +113,7 @@ function Show-FenetreInstallation($c) {
     $majDem = { $cbAdm.Enabled = $cbDem.Checked; $note.Enabled = $cbDem.Checked }
     $cbDem.Add_CheckedChanged($majDem); & $majDem
 
-    $cbBur = Add-Case $f 15 315 "Raccourci 'Copier prompt Heidi' sur le bureau" $c.Bureau
+    $cbBur = Add-Case $f 15 315 "Icone 'Dr Sante outils' sur le bureau (sinon : menu Demarrer)" $c.Bureau
 
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Installer'; $ok.Width = 110
@@ -263,14 +263,19 @@ if ($mode -eq 'raccourci') { New-Raccourci $lnkDemarrage $vbs 'Demarrer.ps1' }
 else { Remove-Item -LiteralPath $lnkDemarrage -Force -ErrorAction SilentlyContinue }
 Set-IniValue 'general' 'demarrage' $mode
 
-# --- 7) Raccourcis : bureau + menu Demarrer ---------------------------------
-$lnkBureau = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Copier prompt Heidi.lnk'
-if ($choix.Bureau) { New-Raccourci $lnkBureau $vbs 'Copier_prompt_Heidi.ps1' }
-else { Remove-Item -LiteralPath $lnkBureau -Force -ErrorAction SilentlyContinue }
-
+# --- 7) Acces a l'outil : menu Demarrer (+ bureau si choisi) ---------------
+$bureau = [Environment]::GetFolderPath('Desktop')
 $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Dr Sante outils'
-New-Raccourci (Join-Path $menu 'Copier prompt Heidi.lnk') $vbs 'Copier_prompt_Heidi.ps1'
-New-Raccourci (Join-Path $menu 'Rechercher une mise a jour.lnk') $vbs 'Demarrer.ps1' '-Manuel'
+# Anciens raccourcis (versions precedentes)
+foreach ($vieux in @((Join-Path $bureau 'Copier prompt Heidi.lnk'),
+                     (Join-Path $menu 'Copier prompt Heidi.lnk'),
+                     (Join-Path $menu 'Rechercher une mise a jour.lnk'))) {
+    Remove-Item -LiteralPath $vieux -Force -ErrorAction SilentlyContinue
+}
+New-Raccourci (Join-Path $menu 'Dr Sante outils.lnk') $vbs 'Outil.ps1'
+$lnkBureau = Join-Path $bureau 'Dr Sante outils.lnk'
+if ($choix.Bureau) { New-Raccourci $lnkBureau $vbs 'Outil.ps1' }
+else { Remove-Item -LiteralPath $lnkBureau -Force -ErrorAction SilentlyContinue }
 
 # --- 8) Premier lancement ---------------------------------------------------
 Info 'Lancement...'
@@ -280,12 +285,7 @@ if ($mode -eq 'tache') {
 }
 if (-not $lance) { Start-Process -FilePath 'wscript.exe' -ArgumentList ('"{0}" "Demarrer.ps1"' -f $vbs) }
 
-$rep = [System.Windows.Forms.MessageBox]::Show(
-    "Installation terminee.`n`nCopier maintenant le prompt Heidi ? Il suffira ensuite de le coller (Ctrl+V) dans votre modele Heidi.`n`n(Plus tard : raccourci 'Copier prompt Heidi' du bureau ou du menu Demarrer.)",
-    $titre, 'YesNo', 'Information')
-if ($rep -eq 'Yes') {
-    $null = Copy-HeidiPrompt
-    [System.Windows.Forms.MessageBox]::Show(
-        "Prompt copie. Collez-le (Ctrl+V) dans votre modele Heidi, a la place de l'ancien.`n`nLes mises a jour vous seront proposees a l'ouverture de Windows.",
-        $titre, 'OK', 'Information') | Out-Null
-}
+[System.Windows.Forms.MessageBox]::Show(
+    "Installation terminee.`n`nLa fenetre 'Dr Sante outils' va s'ouvrir : cliquez sur 'Copier le prompt Heidi' puis collez-le dans votre modele Heidi.`n`nPour la retrouver : menu Demarrer > Dr Sante outils.",
+    $titre, 'OK', 'Information') | Out-Null
+Open-Outil
