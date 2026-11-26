@@ -19,12 +19,12 @@ L'installateur ouvre une fenêtre : dossier d'installation des outils, dossier p
 - **Prompt Heidi** : indicateur vert (à jour) ou orange (à copier dans Heidi) selon la version des scripts installés ; bouton « Copier le prompt Heidi » ; affichage du texte.
 - **Mises à jour** : vérification et installation en un clic.
 - **Ce poste** : dossier patient, mode de démarrage, « Modifier les réglages » (relance l'installateur).
-- Rappel des raccourcis clavier.
+- **Raccourcis dans Dr Santé** : rappel des raccourcis de ce poste ; bouton « Modifier les raccourcis » (Ctrl / Alt / Maj / Win + clic molette, bouton latéral de souris, F1–F12, lettre ou chiffre). Doublons refusés, bouton « Rétablir les valeurs par défaut ». Enregistré dans `config.ini` (section `[raccourcis]`) : propre au poste, conservé lors des mises à jour.
 
 ## Au quotidien
 
 - À l'ouverture de Windows, si une nouvelle version est publiée : une fenêtre propose de l'installer (Oui / Non), sinon reproposée au démarrage suivant. Si le prompt Heidi a changé, elle propose d'ouvrir Dr Santé outils pour le copier.
-- Raccourcis (dans Dr Santé) : Ctrl+clic molette = consultation adulte · Alt+clic molette = enfant · Maj+clic molette = courrier · Win+clic molette = kiné · Ctrl+Alt+clic molette = soins infirmiers · Ctrl+Alt+V = vider le dossier patient.
+- Raccourcis par défaut (dans Dr Santé ; modifiables dans la fenêtre Dr Santé outils) : Ctrl+clic molette = consultation adulte · Alt+clic molette = enfant · Maj+clic molette = courrier · Win+clic molette = kiné · Ctrl+Alt+clic molette = soins infirmiers · Ctrl+Alt+V = vider le dossier patient.
 
 ## Pour l'administrateur
 

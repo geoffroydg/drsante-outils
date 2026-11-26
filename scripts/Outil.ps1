@@ -38,7 +38,7 @@ $f.Text = $titre
 $f.StartPosition = 'CenterScreen'
 $f.FormBorderStyle = 'FixedSingle'
 $f.MaximizeBox = $false
-$f.ClientSize = New-Object System.Drawing.Size(640, 650)
+$f.ClientSize = New-Object System.Drawing.Size(640, 692)
 $f.Font = New-Object System.Drawing.Font('Segoe UI', 9.75)
 $gras = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
 
@@ -66,18 +66,12 @@ $btnDossier = New-Ctrl 'Button' $gc 15 76 210 36 'Ouvrir le dossier patient'
 $btnReglages = New-Ctrl 'Button' $gc 235 76 210 36 'Modifier les réglages'
 
 # Raccourcis
-$gr = New-Ctrl 'GroupBox' $f 12 450 616 150 'Raccourcis dans Dr Santé'
-$lblRac = New-Ctrl 'Label' $gr 15 24 586 120 ((@(
-    "Ctrl + clic molette         consultation adulte" ,
-    "Alt + clic molette          consultation enfant" ,
-    "Maj + clic molette          courrier d'adressage" ,
-    "Win + clic molette          ordonnance de kiné" ,
-    "Ctrl + Alt + clic molette   ordonnance de soins infirmiers" ,
-    "Ctrl + Alt + V              vider le dossier patient"
-) -join "`n"))
+$gr = New-Ctrl 'GroupBox' $f 12 450 616 192 'Raccourcis dans Dr Santé'
+$lblRac = New-Ctrl 'Label' $gr 15 24 586 116 ''
 $lblRac.Font = New-Object System.Drawing.Font('Consolas', 10)
+$btnRac = New-Ctrl 'Button' $gr 15 144 240 36 'Modifier les raccourcis'
 
-$btnFermer = New-Ctrl 'Button' $f 528 610 100 32 'Fermer'
+$btnFermer = New-Ctrl 'Button' $f 528 652 100 32 'Fermer'
 $btnFermer.DialogResult = 'Cancel'
 $f.CancelButton = $btnFermer
 
@@ -204,9 +198,121 @@ $btnReglages.Add_Click({
     $f.Close()
 })
 
+# --- Raccourcis ------------------------------------------------------------
+function Update-EtatRaccourcis {
+    $lignes = foreach ($r in $script:RaccourcisDef) {
+        '{0,-27}{1}' -f $r.Nom, (ConvertTo-TexteRaccourci (Get-Raccourci $r.Cle))
+    }
+    $lblRac.Text = ($lignes -join "`n")
+}
+
+# Remplit une ligne de la fenetre de modification
+function Set-LigneRac($l, [string]$Ahk) {
+    $s = Split-Raccourci $Ahk
+    $l.Ctrl.Checked = $s.Ctrl; $l.Alt.Checked = $s.Alt
+    $l.Maj.Checked = $s.Maj;   $l.Win.Checked = $s.Win
+    $idx = -1
+    for ($i = 0; $i -lt $script:touches.Count; $i++) { if ($script:touches[$i].Ahk -eq $s.Touche) { $idx = $i; break } }
+    if ($idx -lt 0) {
+        $s2 = Split-Raccourci $l.Def.Defaut
+        for ($i = 0; $i -lt $script:touches.Count; $i++) { if ($script:touches[$i].Ahk -eq $s2.Touche) { $idx = $i; break } }
+    }
+    $l.Liste.SelectedIndex = $idx
+}
+
+# Fenetre de modification (enregistre dans config.ini, propre a ce poste)
+function Show-EditeurRaccourcis {
+    $script:touches = Get-TouchesRaccourci
+    $d = New-Object System.Windows.Forms.Form
+    $d.Text = 'Modifier les raccourcis'
+    $d.StartPosition = 'CenterParent'
+    $d.FormBorderStyle = 'FixedDialog'
+    $d.MaximizeBox = $false; $d.MinimizeBox = $false
+    $d.ClientSize = New-Object System.Drawing.Size(640, 400)
+    $d.Font = $f.Font
+
+    $null = New-Ctrl 'Label' $d 12 10 616 40 ("Cochez les touches à maintenir et choisissez la touche ou le bouton. " +
+        "Les cinq imports ne marchent que dans Dr Santé ; « Vider » marche partout. Réglage propre à ce poste.")
+
+    $script:lignesRac = @()
+    $y = 58
+    foreach ($r in $script:RaccourcisDef) {
+        $null = New-Ctrl 'Label' $d 12 ($y + 4) 190 22 $r.Nom
+        $l = [pscustomobject]@{
+            Def  = $r
+            Ctrl = New-Ctrl 'CheckBox' $d 205 $y 55 26 'Ctrl'
+            Alt  = New-Ctrl 'CheckBox' $d 262 $y 50 26 'Alt'
+            Maj  = New-Ctrl 'CheckBox' $d 314 $y 52 26 'Maj'
+            Win  = New-Ctrl 'CheckBox' $d 368 $y 52 26 'Win'
+            Liste = New-Ctrl 'ComboBox' $d 425 $y 200 26 ''
+        }
+        $l.Liste.DropDownStyle = 'DropDownList'
+        foreach ($t in $script:touches) { $null = $l.Liste.Items.Add($t.Texte) }
+        $script:lignesRac += $l
+        $y += 40
+    }
+
+    $btnDefaut = New-Ctrl 'Button' $d 12 350 240 36 'Rétablir les valeurs par défaut'
+    $btnOk     = New-Ctrl 'Button' $d 400 350 110 36 'Enregistrer'
+    $btnAnn    = New-Ctrl 'Button' $d 518 350 110 36 'Annuler'
+    $btnAnn.DialogResult = 'Cancel'
+    $d.CancelButton = $btnAnn
+    $script:dlgRac = $d
+
+    foreach ($l in $script:lignesRac) { Set-LigneRac $l (Get-Raccourci $l.Def.Cle) }
+
+    $btnDefaut.Add_Click({
+        foreach ($l in $script:lignesRac) { Set-LigneRac $l $l.Def.Defaut }
+    })
+
+    $btnOk.Add_Click({
+        $vals = @{}; $erreurs = @(); $vus = @{}
+        foreach ($l in $script:lignesRac) {
+            $nom = $l.Def.Nom
+            if ($l.Liste.SelectedIndex -lt 0) { $erreurs += "$nom : choisissez une touche."; continue }
+            $t = $script:touches[$l.Liste.SelectedIndex]
+            $nbMod = @($l.Ctrl.Checked, $l.Alt.Checked, $l.Maj.Checked, $l.Win.Checked | Where-Object { $_ }).Count
+            if ($t.Type -eq 'souris' -and $nbMod -lt 1) {
+                $erreurs += "$nom : cochez au moins une touche (Ctrl, Alt, Maj ou Win) avec un bouton de souris."
+            }
+            if ($t.Type -eq 'lettre') {
+                if ($l.Win.Checked) { $erreurs += "$nom : Win + lettre ou chiffre est réservé par Windows." }
+                elseif ($nbMod -lt 2) { $erreurs += "$nom : avec une lettre ou un chiffre, cochez au moins deux touches (ex. Ctrl + Alt)." }
+            }
+            $v = Join-Raccourci $l.Ctrl.Checked $l.Alt.Checked $l.Maj.Checked $l.Win.Checked $t.Ahk
+            if ($vus.ContainsKey($v)) { $erreurs += "$nom : même raccourci que « $($vus[$v]) »." }
+            else { $vus[$v] = $nom }
+            $vals[$l.Def.Cle] = $v
+        }
+        if ($erreurs.Count -gt 0) {
+            [System.Windows.Forms.MessageBox]::Show(($erreurs -join "`n"), 'Raccourcis non enregistrés', 'OK', 'Warning') | Out-Null
+            return
+        }
+        try {
+            foreach ($k in $vals.Keys) { Set-IniValue 'raccourcis' $k $vals[$k] }
+            Restart-Outils -ParTache
+            $script:dlgRac.DialogResult = 'OK'
+            $script:dlgRac.Close()
+        }
+        catch {
+            [System.Windows.Forms.MessageBox]::Show("Enregistrement impossible : $($_.Exception.Message)", $titre, 'OK', 'Error') | Out-Null
+        }
+    })
+
+    if ($d.ShowDialog($f) -eq 'OK') {
+        Update-EtatRaccourcis
+        [System.Windows.Forms.MessageBox]::Show('Raccourcis enregistrés et outils relancés : ils sont actifs tout de suite.',
+            $titre, 'OK', 'Information') | Out-Null
+    }
+    $d.Dispose()
+}
+
+$btnRac.Add_Click({ Show-EditeurRaccourcis })
+
 # --- Affichage -------------------------------------------------------------
 Update-EtatPrompt
 Update-EtatPoste
+Update-EtatRaccourcis
 $f.Add_Shown({ $f.Activate(); Update-EtatMaj })
 try { $null = $f.ShowDialog() }
 finally { $mutex.ReleaseMutex() }

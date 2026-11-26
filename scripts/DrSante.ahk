@@ -4,6 +4,10 @@
 ;===========================================================
 ; IMPORT HEIDI -> DR SANTE  (script unique, base : final v7)
 ;
+; RACCOURCIS PAR DEFAUT (modifiables sur chaque poste depuis la fenetre
+; "Dr Sante outils" > "Modifier les raccourcis" ; enregistres dans
+; config.ini, section [raccourcis], jamais ecrases par les mises a jour) :
+;
 ; CTRL  + CLIC MOLETTE      = Consultation ADULTE
 ; ALT   + CLIC MOLETTE      = Consultation ENFANT (+ etiquette si activee)
 ; MAJ   + CLIC MOLETTE      = Courrier d'adressage (1 courrier par appui)
@@ -42,33 +46,89 @@ global COURRIER_MACRO_PREFIX := "Je vous adresse {CivilitePatient} {NomPatient} 
 global COURRIER_MACRO_ANTECEDENTS := "{ListePathologiesAntecedents}"
 global COURRIER_MACRO_TRAITEMENTS := "{ListeCompleteTraitements}"
 
-#HotIf WinActive("ahk_exe DrSanteDesktop.exe")
-^MButton::ImportDrSante("adulte")
-!MButton::ImportDrSante("enfant")
-+MButton::ImportCourrierDrSante()
-#MButton::ImportKineDrSante()
-^!MButton::ImportInfirmierDrSante()
-#HotIf
+;---------------------------------------------------------------
+; RACCOURCIS : lus dans config.ini [raccourcis] (syntaxe AutoHotkey v2 :
+; ^ = Ctrl, ! = Alt, + = Maj, # = Win ; ex. ^!MButton). Les cinq imports
+; ne marchent que dans Dr Sante ; "vider" marche partout.
+; Valeur invalide ou en double -> message + valeur par defaut.
+;---------------------------------------------------------------
+global RACCOURCIS := [
+    {cle: "adulte",    defaut: "^MButton",  drsante: true,  nom: "Consultation adulte",            action: (*) => ImportDrSante("adulte")},
+    {cle: "enfant",    defaut: "!MButton",  drsante: true,  nom: "Consultation enfant",            action: (*) => ImportDrSante("enfant")},
+    {cle: "courrier",  defaut: "+MButton",  drsante: true,  nom: "Courrier d'adressage",           action: (*) => ImportCourrierDrSante()},
+    {cle: "kine",      defaut: "#MButton",  drsante: true,  nom: "Ordonnance de kine",             action: (*) => ImportKineDrSante()},
+    {cle: "infirmier", defaut: "^!MButton", drsante: true,  nom: "Ordonnance de soins infirmiers", action: (*) => ImportInfirmierDrSante()},
+    {cle: "vider",     defaut: "^!v",       drsante: false, nom: "Vider le dossier patient",       action: (*) => ViderDossierPatient()}
+]
+ActiverRaccourcis()
 
-#HotIf
-^!v::ViderDossierPatient()
-#HotIf
+ActiverRaccourcis()
+{
+    utilises := Map()
+    utilises.CaseSense := false
+    erreurs := ""
+    for r in RACCOURCIS
+    {
+        touche := Trim(IniRead(CONFIG_FILE, "raccourcis", r.cle, r.defaut))
+        if (touche = "")
+            touche := r.defaut
+        if utilises.Has(touche)
+        {
+            erreurs .= "- " r.nom " : " touche " deja utilise par '" utilises[touche] "'`n"
+            touche := r.defaut
+        }
+        if !DefinirRaccourci(touche, r)
+        {
+            erreurs .= "- " r.nom " : '" touche "' invalide`n"
+            touche := r.defaut
+            DefinirRaccourci(touche, r)
+        }
+        utilises[touche] := r.nom
+    }
+    if (erreurs != "")
+        MsgBox("Certains raccourcis de config.ini ne sont pas utilisables :`n`n" erreurs
+            . "`nLes valeurs par defaut sont utilisees a la place.`n"
+            . "Corrigez-les dans la fenetre 'Dr Sante outils' > 'Modifier les raccourcis'.",
+            "Raccourcis Dr Sante", "Icon!")
+}
+
+DefinirRaccourci(touche, r)
+{
+    try
+    {
+        if r.drsante
+            HotIfWinActive("ahk_exe DrSanteDesktop.exe")
+        else
+            HotIfWinActive()
+        Hotkey(touche, r.action, "On")
+        HotIfWinActive()
+        return true
+    }
+    catch
+    {
+        HotIfWinActive()
+        return false
+    }
+}
 
 ;---------------------------------------------------------------
 ; Preparation commune : gel clavier/souris physiques pendant le collage,
-; envoi touche par touche (30 ms / 20 ms), relachement des modificateurs.
+; envoi touche par touche (30 ms / 20 ms), relachement des modificateurs
+; encore enfonces (quel que soit le raccourci choisi).
 ; PIEGE : relacher Alt ou Win "tout seul" active le menu de l'application
 ; ou le menu Demarrer -> on presse Ctrl AVANT de relacher Alt / Win.
 ;---------------------------------------------------------------
-PrepareSend(relacheWin := false)
+PrepareSend()
 {
     BlockInput(true)
     SendMode("Event")
     SetKeyDelay(30, 20)
-    if (relacheWin)
-        Send("{Blind}{Ctrl down}{LWin up}{RWin up}{Ctrl up}{Alt up}{Shift up}")
-    else
-        Send("{Blind}{Ctrl down}{Alt up}{Ctrl up}{Shift up}")
+    seq := "{Blind}{LCtrl down}"
+    for k in ["LWin", "RWin", "LAlt", "RAlt", "LShift", "RShift", "RCtrl"]
+        if GetKeyState(k)
+            seq .= "{" k " up}"
+    seq .= "{LCtrl up}"
+    Send(seq)
     Sleep(150)
 }
 
@@ -301,7 +361,7 @@ ImportKineDrSante()
 {
     global KINE_STATE_TEXT, KINE_STATE_INDEX
 
-    PrepareSend(true)
+    PrepareSend()
     heidiText := A_Clipboard
 
     if !InStr(heidiText,"[KINE]") or !InStr(heidiText,"[FIN_KINE]")

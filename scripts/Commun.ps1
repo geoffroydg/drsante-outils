@@ -206,6 +206,70 @@ function Copy-HeidiPrompt {
     return ((Get-IniValue 'general' 'etiquette' '0') -eq '1')
 }
 
+# --- Raccourcis clavier (config.ini, section [raccourcis]) ------------------
+# Syntaxe AutoHotkey v2 : ^ = Ctrl, ! = Alt, + = Maj, # = Win, puis la touche.
+# Meme liste et memes valeurs par defaut que dans scripts\DrSante.ahk.
+$script:RaccourcisDef = @(
+    [pscustomobject]@{ Cle = 'adulte';    Defaut = '^MButton';  Nom = 'Consultation adulte' }
+    [pscustomobject]@{ Cle = 'enfant';    Defaut = '!MButton';  Nom = 'Consultation enfant' }
+    [pscustomobject]@{ Cle = 'courrier';  Defaut = '+MButton';  Nom = "Courrier d'adressage" }
+    [pscustomobject]@{ Cle = 'kine';      Defaut = '#MButton';  Nom = 'Ordonnance de kiné' }
+    [pscustomobject]@{ Cle = 'infirmier'; Defaut = '^!MButton'; Nom = 'Ordonnance infirmière' }
+    [pscustomobject]@{ Cle = 'vider';     Defaut = '^!v';       Nom = 'Vider le dossier patient' }
+)
+
+# Touches proposees : Ahk = nom AutoHotkey, Texte = nom affiche, Type = souris / F / lettre
+function Get-TouchesRaccourci {
+    $l = New-Object System.Collections.Generic.List[object]
+    $l.Add([pscustomobject]@{ Ahk = 'MButton';  Texte = 'clic molette';          Type = 'souris' })
+    $l.Add([pscustomobject]@{ Ahk = 'XButton1'; Texte = 'bouton souris arrière'; Type = 'souris' })
+    $l.Add([pscustomobject]@{ Ahk = 'XButton2'; Texte = 'bouton souris avant';   Type = 'souris' })
+    foreach ($i in 1..12) { $l.Add([pscustomobject]@{ Ahk = "F$i"; Texte = "F$i"; Type = 'F' }) }
+    foreach ($c in [char[]]'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') {
+        $l.Add([pscustomobject]@{ Ahk = ([string]$c).ToLower(); Texte = [string]$c; Type = 'lettre' })
+    }
+    return $l
+}
+
+function Get-Raccourci([string]$Cle) {
+    $d = ($script:RaccourcisDef | Where-Object { $_.Cle -eq $Cle }).Defaut
+    $v = Get-IniValue 'raccourcis' $Cle $d
+    if (-not $v) { $v = $d }
+    return $v
+}
+
+# '^!MButton' -> @{ Ctrl; Alt; Maj; Win; Touche = 'MButton' }
+function Split-Raccourci([string]$Ahk) {
+    $r = @{ Ctrl = $false; Alt = $false; Maj = $false; Win = $false; Touche = '' }
+    if ($Ahk -match '^([\^!+#]*)(.+)$') {
+        $p = $Matches[1]
+        $r.Ctrl = $p.Contains('^'); $r.Alt = $p.Contains('!')
+        $r.Maj = $p.Contains('+');  $r.Win = $p.Contains('#')
+        $r.Touche = $Matches[2]
+        if ($r.Touche.Length -eq 1) { $r.Touche = $r.Touche.ToLower() }
+    }
+    return $r
+}
+
+# Forme normalisee (toujours dans l'ordre ^ ! + #) : sert aussi aux doublons
+function Join-Raccourci([bool]$Ctrl, [bool]$Alt, [bool]$Maj, [bool]$Win, [string]$Touche) {
+    $p = ''
+    if ($Ctrl) { $p += '^' }; if ($Alt) { $p += '!' }
+    if ($Maj)  { $p += '+' }; if ($Win) { $p += '#' }
+    return $p + $Touche
+}
+
+# '^!MButton' -> 'Ctrl + Alt + clic molette'
+function ConvertTo-TexteRaccourci([string]$Ahk) {
+    $s = Split-Raccourci $Ahk
+    $parts = @()
+    if ($s.Ctrl) { $parts += 'Ctrl' }; if ($s.Alt) { $parts += 'Alt' }
+    if ($s.Maj)  { $parts += 'Maj' };  if ($s.Win) { $parts += 'Win' }
+    $t = Get-TouchesRaccourci | Where-Object { $_.Ahk -eq $s.Touche } | Select-Object -First 1
+    if ($t) { $parts += $t.Texte } else { $parts += $s.Touche }
+    return ($parts -join ' + ')
+}
+
 # --- (Re)lancement des outils (AutoHotkey + surveillance dossier patient) ----
 # -ParTache : si le demarrage administrateur est configure, relance via la
 # tache planifiee (mode administrateur sans demande d'autorisation).
