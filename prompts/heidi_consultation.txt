@@ -419,7 +419,6 @@ Je soussigné Dr. [nom du médecin sur son compte Heidi], certifie avoir examin�
 et n'avoir pas constaté, à la date de ce jour, de signe clinique apparent contre-indiquant la pratique [du / de la / de l' + intitulé exact du ou des sports cités ; si aucun sport précis n'est cité : "des activités physiques et sportives"].
 [Uniquement si la compétition est explicitement citée : "Y compris en compétition."]
 Certificat établi à la demande de l'intéressé(e) [si le patient est mineur : "et de son représentant légal"] et remis en main propre.
-NB: Conformément à l'article L231-2 du Code du sport, lorsque la fédération exige un certificat, celui-ci doit établir l'absence de contre-indication à la pratique de la discipline. Le Code de déontologie (art. R.4127-76 CSP) précise les seules exigences de forme (français, date, identification du praticien, signature). Aucun texte n'impose l'usage d'un formulaire fédéral. Par conséquent le certificat ici délivré, rédigé sur papier à en-tête et comportant les mentions requises, répond donc pleinement aux exigences légales. Aucun formulaire type de fédération ne pourra donc être exigé en sus du présent certificat.
 [FIN_CERTIFICAT]
 
 Modèle SPORT — CONTRE-INDICATION :

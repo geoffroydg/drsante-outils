@@ -5,4 +5,4 @@
 3. **Postes de confrères** : les raccourcis AHK dépendent de la disposition des champs de Dr Santé (nombre de tabulations). À tester sur chaque poste.
 4. **Étiquettes** : nécessitent P-touch Editor + SDK b-PAC et le modèle `.lbx` sur le poste concerné.
 5. **Certificats** : vérifier dans Dr Santé que les macros `{NomPatient} {PrenomPatient}` et `{DateNaissancePatient}` sont bien remplacées dans un document de type certificat (comme dans les courriers).
-6. **NB du certificat sport** (« aucun formulaire type de fédération ne pourra être exigé ») : le CNOM (tableau majeurs 04/2025) indique que chaque fédération, via sa commission médicale, fixe la nature, la périodicité et le contenu des examens du CACI. Phrase à revoir par le médecin.
+6. **NB du certificat sport** : SUPPRIMÉ à la demande du médecin (contredisait le CNOM : chaque fédération fixe le contenu des examens du CACI).
