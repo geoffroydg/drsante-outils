@@ -39,7 +39,7 @@ $btnMaj = Add-Bouton $gm 254 44 160 'Vérifier à nouveau'
 
 # Colonne gauche : ce poste
 $gc = Add-Carte $f 20 402 430 134 'Ce poste'
-$lblPoste = Add-Ctrl 'Label' $gc 16 40 398 44 ''
+$lblPoste = Add-Ctrl 'Label' $gc 16 36 398 50 ''
 $lblPoste.ForeColor = $script:Theme.TexteDoux
 $btnDossier = Add-Bouton $gc 16 88 196 'Ouvrir le dossier patient'
 $btnReglages = Add-Bouton $gc 220 88 194 'Modifier les réglages'
@@ -168,6 +168,15 @@ function Update-EtatPoste {
         default     { 'désactivé' }
     }
     $lblPoste.Text = "Dossier patient : $dp`nLancement à l'ouverture de Windows : $dem"
+    $lblPoste.ForeColor = $script:Theme.TexteDoux
+    if ($dp -and -not (Test-DossierPatientSur $dp)) {
+        $lblPoste.Text += "`n" + [char]0x26A0 + " Dossier non reconnu : nettoyage automatique désactivé."
+        $lblPoste.ForeColor = $script:Theme.Orange
+    }
+    elseif (Test-DossierSynchronise $dp) {
+        $lblPoste.Text += "`n" + [char]0x26A0 + " Dossier synchronisé sur internet (OneDrive, Dropbox...)."
+        $lblPoste.ForeColor = $script:Theme.Orange
+    }
 }
 
 $btnDossier.Add_Click({
@@ -180,8 +189,8 @@ $btnReglages.Add_Click({
     $inst = Join-Path $script:AppDir 'Installer.ps1'
     $a = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Depot "{1}" -Branche "{2}"' -f $inst,
         (Get-IniValue 'depot' 'nom' ''), (Get-IniValue 'depot' 'branche' 'main')
-    $tok = Get-Token
-    if ($tok) { $a += (' -Token "{0}"' -f $tok) }
+    # SECURITE : plus de jeton en ligne de commande (visible par les autres
+    # programmes) ; le depot est public.
     Start-Process -FilePath 'powershell.exe' -ArgumentList $a
     $f.Close()
 })

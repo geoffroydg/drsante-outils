@@ -25,6 +25,7 @@ $watchPath = Get-IniValue 'general' 'dossier_patient' (Join-Path $env:USERPROFIL
 $logPath   = Join-Path $configDir 'journal_aplatissement.txt'
 
 $junkNames    = @('desktop.ini', 'Thumbs.db', '.dropbox', '.dropbox.attr')
+$marqueur     = $script:MarqueurPatient   # jamais deplace ni supprime
 $quietSeconds = 4      # le dossier doit etre calme pendant 4 s avant traitement
 $maxRetries   = 5      # essais sur un fichier encore verrouille
 $retryDelayMs = 400
@@ -39,12 +40,9 @@ $createdNew = $false
 $mutex = New-Object System.Threading.Mutex($true, 'Local\AplatirDossierPatient', [ref]$createdNew)
 if (-not $createdNew) { exit }
 
-if (-not (Test-Path -LiteralPath $watchPath)) {
-    New-Item -ItemType Directory -Path $watchPath -Force | Out-Null
-}
-
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+
 
 $script:lastActivity = [DateTime]::MinValue
 
@@ -152,7 +150,8 @@ function Invoke-Cycle {
     }
     if ($totalMoved -gt 0 -or $totalDirs -gt 0 -or $left -gt 0) {
         Write-Log "Aplatissement : $totalMoved fichier(s) remontes, $totalDirs sous-dossier(s) supprimes, $left fichier(s) restes verrouilles"
-        $total = @(Get-ChildItem -LiteralPath $watchPath -File -Force -ErrorAction SilentlyContinue).Count
+        $total = @(Get-ChildItem -LiteralPath $watchPath -File -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -ne $marqueur }).Count
         if ($left -gt 0) {
             Show-Notif 'Dossier patient' "ATTENTION : $left fichier(s) encore verrouille(s), non ranges."
         } else {
@@ -177,7 +176,8 @@ function Get-LastActivity {
 function Invoke-AutoPurge {
     param([double]$MinIdleMinutes)
 
-    $items = @(Get-ChildItem -LiteralPath $watchPath -Force -ErrorAction SilentlyContinue)
+    $items = @(Get-ChildItem -LiteralPath $watchPath -Force -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -ne $marqueur })
     if ($items.Count -eq 0) { return $true }
 
     $idle = ((Get-Date) - (Get-LastActivity)).TotalMinutes
@@ -202,6 +202,22 @@ function Get-NextPurgeTime {
     $t = (Get-Date).Date.AddHours($purgeHour)
     if ($t -le (Get-Date)) { $t = $t.AddDays(1) }
     return $t
+}
+
+# SECURITE : ce script supprime le contenu du dossier surveille. Il ne
+# demarre que sur un dossier patient reconnu (dossier autorise + marqueur).
+if (-not (Test-Path -LiteralPath $watchPath) -and -not (Get-RefusDossierPatient $watchPath)) {
+    New-Item -ItemType Directory -Path $watchPath -Force | Out-Null
+    New-MarqueurPatient $watchPath
+}
+if (-not (Test-DossierPatientSur $watchPath)) {
+    Write-Log 'Dossier patient non reconnu : rangement et nettoyage automatiques desactives'
+    $t = New-Object System.Windows.Forms.NotifyIcon
+    $t.Icon = [System.Drawing.SystemIcons]::Warning; $t.Visible = $true
+    $t.ShowBalloonTip(8000, 'Dossier patient', "Dossier patient non reconnu : rangement et nettoyage automatiques désactivés. Ouvrez Dr Santé outils > Modifier les réglages.", 'Warning')
+    Start-Sleep -Seconds 9
+    $t.Dispose()
+    exit
 }
 
 # --- Surveillance par evenements (pas de boucle de scan) -------------------

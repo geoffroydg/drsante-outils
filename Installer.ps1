@@ -121,7 +121,25 @@ function Show-FenetreInstallation($c) {
         if ($f.DialogResult -ne 'OK') { return }
         if ([string]::IsNullOrWhiteSpace($app[1].Text) -or [string]::IsNullOrWhiteSpace($pat[1].Text)) {
             [System.Windows.Forms.MessageBox]::Show('Indiquez les deux dossiers.', $titre, 'OK', 'Warning') | Out-Null
-            $e.Cancel = $true
+            $e.Cancel = $true; return
+        }
+        # SECURITE : le dossier patient est vide automatiquement
+        if (Get-Command Get-RefusDossierPatient -ErrorAction SilentlyContinue) {
+            $refus = Get-RefusDossierPatient $pat[1].Text.Trim()
+            if ($refus) {
+                [System.Windows.Forms.MessageBox]::Show("Ce dossier patient ne peut pas être utilisé : $refus.`n`nIl est vidé automatiquement chaque soir : choisissez (ou créez) un dossier vide, dédié.", $titre, 'OK', 'Warning') | Out-Null
+                $e.Cancel = $true; return
+            }
+            $dpc = $pat[1].Text.Trim()
+            if ((Test-Path -LiteralPath $dpc) -and -not (Test-Path -LiteralPath (Join-Path $dpc $script:MarqueurPatient)) -and
+                (Get-IniValue 'general' 'dossier_patient' '') -ne $dpc -and @(Get-ChildItem -LiteralPath $dpc -Force -ErrorAction SilentlyContinue).Count -gt 0) {
+                [System.Windows.Forms.MessageBox]::Show("Ce dossier contient déjà des fichiers : il serait vidé automatiquement chaque soir.`n`nChoisissez (ou créez) un dossier vide, dédié au dossier patient.", $titre, 'OK', 'Warning') | Out-Null
+                $e.Cancel = $true; return
+            }
+            if (Test-DossierSynchronise $pat[1].Text.Trim()) {
+                $r = [System.Windows.Forms.MessageBox]::Show("Ce dossier patient est synchronisé sur internet (OneDrive, Dropbox...) : les documents des patients y seraient copiés.`n`nContinuer quand même ?", $titre, 'YesNo', 'Warning')
+                if ($r -ne 'Yes') { $e.Cancel = $true; return }
+            }
         }
     })
 
@@ -183,7 +201,13 @@ try {
     $dem = Get-IniValue 'general' 'demarrage' 'tache'
     $choix = [pscustomobject]@{
         App       = Get-IniValue 'general' 'dossier_app' (Join-Path $env:LOCALAPPDATA 'DrSanteOutils\app')
-        Patient   = Get-IniValue 'general' 'dossier_patient' (Join-Path $env:USERPROFILE 'Documents\Dossier patient')
+        Patient   = Get-IniValue 'general' 'dossier_patient' $(
+            # Par defaut hors OneDrive (sinon synchronise sur internet)
+            $docs = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Dossier patient'
+            if (Get-Command Test-DossierSynchronise -ErrorAction SilentlyContinue) {
+                if (Test-DossierSynchronise $docs) { $docs = Join-Path $env:USERPROFILE 'Dossier patient' }
+            }
+            $docs)
         Etiquette = ((Get-IniValue 'general' 'etiquette' '0') -eq '1')
         Lbx       = Get-IniValue 'etiquette' 'lbx' ''
         Demarrage = ($dem -ne 'non')
@@ -213,8 +237,8 @@ Set-IniValue 'depot' 'nom' $Depot
 Set-IniValue 'depot' 'branche' $Branche
 if ($Token) { Save-Token $Token }
 Set-IniValue 'general' 'dossier_app' $choix.App
+Initialize-DossierPatient $choix.Patient   # refuse un dossier sensible ou deja rempli
 Set-IniValue 'general' 'dossier_patient' $choix.Patient
-if (-not (Test-Path -LiteralPath $choix.Patient)) { New-Item -ItemType Directory -Path $choix.Patient -Force | Out-Null }
 Set-IniValue 'general' 'etiquette' $(if ($choix.Etiquette) { '1' } else { '0' })
 if ($choix.Lbx) { Set-IniValue 'etiquette' 'lbx' $choix.Lbx }
 

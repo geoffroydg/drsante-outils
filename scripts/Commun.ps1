@@ -7,6 +7,12 @@ $script:ConfigDir    = Join-Path $env:APPDATA 'DrSanteOutils'
 $script:ConfigFile   = Join-Path $script:ConfigDir 'config.ini'
 $script:ShaFile      = Join-Path $script:ConfigDir 'version.sha'
 $script:NomTache     = 'Dr Sante outils'   # tache planifiee (demarrage administrateur)
+# SECURITE : source des mises a jour figee dans le code (et non lue dans
+# config.ini, modifiable sans droits administrateur alors que la mise a jour
+# peut s'executer en mode administrateur).
+$script:DepotOfficiel   = 'geoffroydg/drsante-outils'
+$script:BrancheOfficiel = 'main'
+$script:MarqueurPatient = '.dossier_patient_drsante'
 
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch { }
 
@@ -27,6 +33,8 @@ function Get-IniValue {
 
 function Set-IniValue {
     param([string]$Section, [string]$Key, [string]$Value)
+    # SECURITE : une valeur ne peut pas creer de nouvelle ligne / section
+    $Value = ($Value -replace '[\r\n]', ' ').Trim()
     if (-not (Test-Path -LiteralPath $script:ConfigDir)) {
         New-Item -ItemType Directory -Path $script:ConfigDir -Force | Out-Null
     }
@@ -85,22 +93,25 @@ function Get-GitHubHeaders {
 
 # --- Depot GitHub -----------------------------------------------------------
 function Get-RemoteSha {
-    $depot  = Get-IniValue 'depot' 'nom' ''
-    $branch = Get-IniValue 'depot' 'branche' 'main'
-    if (-not $depot) { return '' }
+    $depot  = $script:DepotOfficiel
+    $branch = $script:BrancheOfficiel
     $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 15 `
         -Uri "https://api.github.com/repos/$depot/commits/$branch" `
         -Headers (Get-GitHubHeaders 'application/vnd.github.sha')
     $c = $r.Content
     if ($c -is [byte[]]) { $c = [Text.Encoding]::ASCII.GetString($c) }
-    return ([string]$c).Trim()
+    $c = ([string]$c).Trim()
+    if ($c -notmatch '^[0-9a-f]{40}$') { return '' }   # reponse inattendue : on ignore
+    return $c
 }
 
 # Telecharge le depot (zip) et copie son contenu dans $AppDir (ecrase).
+# -Ref : version exacte (empreinte) a installer, celle qui a ete verifiee.
 function Install-DepotZip {
-    $depot  = Get-IniValue 'depot' 'nom' ''
-    $branch = Get-IniValue 'depot' 'branche' 'main'
-    if (-not $depot) { throw 'Depot GitHub non configure (config.ini, section [depot]).' }
+    param([string]$Ref = '')
+    $depot  = $script:DepotOfficiel
+    $branch = $script:BrancheOfficiel
+    if ($Ref -match '^[0-9a-f]{40}$') { $branch = $Ref }
 
     $tmp = Join-Path $env:TEMP ('drsante_' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $tmp -Force | Out-Null
@@ -112,6 +123,12 @@ function Install-DepotZip {
         Expand-Archive -LiteralPath $zip -DestinationPath (Join-Path $tmp 'x') -Force
         $root = Get-ChildItem -LiteralPath (Join-Path $tmp 'x') -Directory | Select-Object -First 1
         if (-not $root) { throw 'Archive du depot vide ou illisible.' }
+        # Archive incomplete ou etrangere : on n'installe rien
+        foreach ($indispensable in @('scripts\Commun.ps1', 'scripts\DrSante.ahk', 'scripts\Demarrer.ps1', 'prompts\heidi_consultation.txt')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $root.FullName $indispensable))) {
+                throw "Archive de mise a jour incomplete ($indispensable manquant) : rien n'a ete installe."
+            }
+        }
         if (-not (Test-Path -LiteralPath $script:AppDir)) {
             New-Item -ItemType Directory -Path $script:AppDir -Force | Out-Null
         }
@@ -138,7 +155,7 @@ function Install-Update {
     $before = ''
     if (Test-Path -LiteralPath $promptFile) { $before = (Get-FileHash -LiteralPath $promptFile).Hash }
 
-    Install-DepotZip
+    Install-DepotZip -Ref $Remote
     if (-not (Test-Path -LiteralPath $script:ConfigDir)) { New-Item -ItemType Directory -Path $script:ConfigDir -Force | Out-Null }
     Set-Content -LiteralPath $script:ShaFile -Value $Remote -Encoding ASCII
 
@@ -204,6 +221,85 @@ function Copy-HeidiPrompt {
     Set-Clipboard -Value (Get-HeidiPromptText)
     Set-IniValue 'heidi' 'prompt_copie' (Get-HeidiPromptVersion)
     return ((Get-IniValue 'general' 'etiquette' '0') -eq '1')
+}
+
+# --- Dossier patient : garde-fous -----------------------------------------
+# Ce dossier est vide AUTOMATIQUEMENT et DEFINITIVEMENT (chaque soir, et par
+# Ctrl+Alt+V) : il doit etre dedie. Refuse les dossiers sensibles et exige un
+# fichier marqueur (cree a l'installation dans un dossier vide ou nouveau).
+
+# Renvoie '' si le chemin est acceptable, sinon la raison du refus.
+function Get-RefusDossierPatient([string]$Chemin) {
+    if ([string]::IsNullOrWhiteSpace($Chemin)) { return 'aucun dossier indiqué' }
+    try { $c = [IO.Path]::GetFullPath($Chemin).TrimEnd('\') } catch { return 'chemin invalide' }
+    if ($c.Length -le 3 -or $c -match '^\\\\[^\\]+\\[^\\]+$') { return "c'est la racine d'un disque" }
+    $profil = $env:USERPROFILE
+    $interdits = @(
+        $profil, $env:PUBLIC, $env:OneDrive, $env:OneDriveCommercial, $env:OneDriveConsumer,
+        [Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('MyDocuments'),
+        [Environment]::GetFolderPath('MyPictures'), [Environment]::GetFolderPath('MyMusic'),
+        [Environment]::GetFolderPath('MyVideos'), (Join-Path $profil 'Downloads'),
+        (Split-Path -Parent $profil)
+    ) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
+    foreach ($i in $interdits) {
+        if ($c -ieq $i) { return "c'est un dossier personnel de Windows ($i)" }
+    }
+    $racinesInterdites = @(
+        $env:windir, $env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:ProgramData,
+        $env:APPDATA, $env:LOCALAPPDATA, $script:AppDir, $script:ConfigDir
+    ) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
+    foreach ($r in $racinesInterdites) {
+        if ($c -ieq $r -or $c.StartsWith($r + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            return "c'est un dossier système ou de programme ($r)"
+        }
+    }
+    return ''
+}
+
+# Dossier synchronise sur internet (OneDrive, Dropbox...) : avertissement
+function Test-DossierSynchronise([string]$Chemin) {
+    if (-not $Chemin) { return $false }
+    if ($env:OneDrive -and $Chemin.StartsWith($env:OneDrive.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    return ($Chemin -match '(?i)\\(OneDrive[^\\]*|Dropbox|Google ?Drive|iCloud ?Drive|Mon Drive|My Drive)(\\|$)')
+}
+
+# Le dossier est-il bien un dossier patient reconnu (autorise + marqueur) ?
+function Test-DossierPatientSur([string]$Chemin) {
+    if (Get-RefusDossierPatient $Chemin) { return $false }
+    return (Test-Path -LiteralPath (Join-Path $Chemin $script:MarqueurPatient))
+}
+
+function New-MarqueurPatient([string]$Chemin) {
+    $m = Join-Path $Chemin $script:MarqueurPatient
+    if (Test-Path -LiteralPath $m) { return }
+    Set-Content -LiteralPath $m -Encoding UTF8 -Value @(
+        'Dossier patient de Dr Santé outils.',
+        'Son contenu est supprimé automatiquement et définitivement (chaque soir et par Ctrl+Alt+V).',
+        "N'y rangez rien d'autre. Ne supprimez pas ce fichier."
+    )
+    try { (Get-Item -LiteralPath $m -Force).Attributes = 'Hidden' } catch { }
+}
+
+# Installation : cree le dossier si besoin et y pose le marqueur. Refuse un
+# dossier sensible, ou un dossier existant non vide jamais utilise par l'outil.
+function Initialize-DossierPatient([string]$Chemin) {
+    $refus = Get-RefusDossierPatient $Chemin
+    if ($refus) { throw "Dossier patient refusé : $refus. Choisissez (ou créez) un dossier vide, dédié au dossier patient." }
+    if (-not (Test-Path -LiteralPath $Chemin)) { New-Item -ItemType Directory -Path $Chemin -Force | Out-Null }
+    if (-not (Test-Path -LiteralPath (Join-Path $Chemin $script:MarqueurPatient))) {
+        $n = @(Get-ChildItem -LiteralPath $Chemin -Force -ErrorAction SilentlyContinue).Count
+        if ($n -gt 0 -and (Get-IniValue 'general' 'dossier_patient' '') -ne $Chemin) {
+            throw "Le dossier patient choisi contient déjà $n élément(s) : il serait vidé automatiquement. Choisissez (ou créez) un dossier vide, dédié au dossier patient."
+        }
+        New-MarqueurPatient $Chemin
+    }
+}
+
+# Mise a jour d'un poste existant : pose le marqueur sur le dossier deja
+# utilise s'il est acceptable (sinon le nettoyage automatique reste bloque).
+function Repair-DossierPatient {
+    $dp = Get-IniValue 'general' 'dossier_patient' ''
+    if ($dp -and (Test-Path -LiteralPath $dp) -and -not (Get-RefusDossierPatient $dp)) { New-MarqueurPatient $dp }
 }
 
 # --- Raccourcis clavier (config.ini, section [raccourcis]) ------------------

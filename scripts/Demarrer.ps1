@@ -33,6 +33,7 @@ if ($info -and $info.Disponible) {
 }
 
 # --- 2) (Re)lancement des outils -------------------------------------------
+try { Repair-DossierPatient } catch { }   # postes installes avant le marqueur
 Restart-Outils
 
 # --- 3) Prompt Heidi a mettre a jour dans Heidi ----------------------------

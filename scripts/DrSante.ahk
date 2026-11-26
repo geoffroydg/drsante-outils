@@ -33,6 +33,7 @@ global ETIQUETTE_ACTIVE := (IniRead(CONFIG_FILE, "general",  "etiquette", "0") =
 global LBX_TEMPLATE     := IniRead(CONFIG_FILE, "etiquette", "lbx", "")
 global PTEDIT_EXE       := IniRead(CONFIG_FILE, "etiquette", "ptedit", "C:\Program Files (x86)\Brother\Ptedit54\ptedit54.exe")
 global LBX_TEMP_DIR     := A_Temp "\EtiquettesDrSante"
+global MARQUEUR_PATIENT := ".dossier_patient_drsante"   ; cree par l'installation
 
 ; Etat des "curseurs" (courrier / kine / infirmier courant). Geres par le script.
 global COURRIER_STATE_TEXT := ""
@@ -64,6 +65,7 @@ global RACCOURCIS := [
     {cle: "vider",     defaut: "^!v",       drsante: false, nom: "Vider le dossier patient",       action: (*) => ViderDossierPatient()}
 ]
 ActiverRaccourcis()
+PurgerEtiquettesTemporaires()
 
 ActiverRaccourcis()
 {
@@ -141,9 +143,9 @@ PrepareSend()
 ImportDrSante(mode)
 {
     PrepareSend()
+    heidiText := A_Clipboard
     try
     {
-        heidiText := A_Clipboard
 
         if !InStr(heidiText,"[ANAMNESE]") or !InStr(heidiText,"[FIN_DRSANTE]")
         {
@@ -261,13 +263,20 @@ ImportDrSante(mode)
             PasteToField(pc)
         }
     }
+    catch as err
+    {
+        BlockInput(false)
+        CopierPressePapiersPrive(heidiText)
+        MessageCollageInterrompu(err)
+        return
+    }
     finally
     {
         ; Toujours redonner la main, meme en cas d'erreur
         BlockInput(false)
     }
 
-    A_Clipboard := heidiText
+    CopierPressePapiersPrive(heidiText)
 
     if (mode = "enfant" && ETIQUETTE_ACTIVE)
     {
@@ -352,9 +361,18 @@ ImportCourrierDrSante()
         ShowCourrierTooltip(msg)
     }
 
-    PasteToField(p.corps)
-    BlockInput(false)
-    A_Clipboard := heidiText
+    try
+        PasteToField(p.corps)
+    catch as err
+    {
+        BlockInput(false)
+        CopierPressePapiersPrive(heidiText)
+        MessageCollageInterrompu(err)
+        return
+    }
+    finally
+        BlockInput(false)
+    CopierPressePapiersPrive(heidiText)
 }
 
 ;===================================================================
@@ -428,10 +446,17 @@ CollerDocument(doc, i, heidiText)
     PrepareSend()
     try
         PasteToField(doc.texte)
+    catch as err
+    {
+        BlockInput(false)
+        CopierPressePapiersPrive(heidiText)
+        MessageCollageInterrompu(err)
+        return
+    }
     finally
         BlockInput(false)
     DOCS_COLLES[i] := true
-    A_Clipboard := heidiText
+    CopierPressePapiersPrive(heidiText)
 }
 
 ; Liste {libelle, texte} de tous les documents du presse-papiers, dans
@@ -640,6 +665,76 @@ InsertDrSanteAntecedentsTraitements(corps)
 ;---------------------------------------------------------------
 ; Collage generique
 ;---------------------------------------------------------------
+;---------------------------------------------------------------
+; SECURITE : le collage s'arrete si Dr Sante n'est plus au premier plan
+;---------------------------------------------------------------
+VerifierFenetreDrSante()
+{
+    if !WinActive("ahk_exe DrSanteDesktop.exe")
+        throw Error("FENETRE_DRSANTE")
+}
+
+MessageCollageInterrompu(err)
+{
+    if (err.Message = "FENETRE_DRSANTE")
+        MsgBox("Collage interrompu : la fenetre Dr Sante n'etait plus au premier plan"
+            . " (une autre fenetre s'est ouverte ou a ete cliquee).`n`n"
+            . "Par securite, rien d'autre n'a ete colle. Verifiez le document,"
+            . " puis relancez le raccourci.", "Collage interrompu", "Icon!")
+    else
+        MsgBox("Collage interrompu par une erreur :`n`n" err.Message, "Collage interrompu", "Icon!")
+}
+
+;---------------------------------------------------------------
+; SECURITE : presse-papiers exclu de l'historique Windows (Win+V) et de la
+; synchronisation cloud Microsoft. En cas d'echec : copie classique.
+;---------------------------------------------------------------
+CopierPressePapiersPrive(texte)
+{
+    static fmtHisto := DllCall("RegisterClipboardFormat", "Str", "CanIncludeInClipboardHistory", "UInt")
+    static fmtCloud := DllCall("RegisterClipboardFormat", "Str", "CanUploadToCloudClipboard", "UInt")
+    ok := false
+    try
+    {
+        ouvert := false
+        Loop 10
+        {
+            if DllCall("OpenClipboard", "Ptr", A_ScriptHwnd)
+            {
+                ouvert := true
+                break
+            }
+            Sleep(20)
+        }
+        if ouvert
+        {
+            try
+            {
+                DllCall("EmptyClipboard")
+                hTexte := DllCall("GlobalAlloc", "UInt", 0x2, "UPtr", (StrLen(texte) + 1) * 2, "Ptr")
+                pTexte := DllCall("GlobalLock", "Ptr", hTexte, "Ptr")
+                StrPut(texte, pTexte, "UTF-16")
+                DllCall("GlobalUnlock", "Ptr", hTexte)
+                ok := (DllCall("SetClipboardData", "UInt", 13, "Ptr", hTexte, "Ptr") != 0)
+                for fmt in [fmtHisto, fmtCloud]
+                {
+                    h := DllCall("GlobalAlloc", "UInt", 0x2, "UPtr", 4, "Ptr")
+                    pz := DllCall("GlobalLock", "Ptr", h, "Ptr")
+                    NumPut("UInt", 0, pz)
+                    DllCall("GlobalUnlock", "Ptr", h)
+                    DllCall("SetClipboardData", "UInt", fmt, "Ptr", h, "Ptr")
+                }
+            }
+            finally
+                DllCall("CloseClipboard")
+        }
+    }
+    catch
+        ok := false
+    if (!ok || A_Clipboard != texte)
+        A_Clipboard := texte
+}
+
 PasteToField(textValue)
 {
     if (textValue = "")
@@ -650,8 +745,11 @@ PasteToField(textValue)
 
     ; Macros Dr Sante parfois ecrites {{Macro}} par Heidi : une seule paire
     textValue := RegExReplace(textValue, "\{\{(\w+)\}\}", "{$1}")
-    A_Clipboard := textValue
+    CopierPressePapiersPrive(textValue)
     Sleep(150)
+    ; SECURITE : ne jamais coller de donnees patient ailleurs que dans Dr Sante
+    ; (fenetre surgissante, messagerie, navigateur...)
+    VerifierFenetreDrSante()
     Send("^v")
     Sleep(100)
 }
@@ -685,6 +783,8 @@ CreateAndOpenLabel(contenuTexte)
 
     try
     {
+        if !RegExMatch(LBX_TEMPLATE, "i)\.lbx$") || !FileExist(LBX_TEMPLATE)
+            throw Error("Modele d'etiquette introuvable ou invalide : " LBX_TEMPLATE)
         if !doc.Open(LBX_TEMPLATE)
             throw Error("Impossible d'ouvrir le modele : " LBX_TEMPLATE)
 
@@ -722,16 +822,12 @@ CreateAndOpenLabel(contenuTexte)
             doc.Close()
     }
 
-    try
-    {
-        Loop Files, LBX_TEMP_DIR "\Etiquette_*.lbx"
-        {
-            dateModif := FileGetTime(A_LoopFileFullPath,"M")
-            if (DateDiff(A_Now, dateModif, "Days") > 30)
-                FileDelete(A_LoopFileFullPath)
-        }
-    }
+    PurgerEtiquettesTemporaires()
 
+    ; SECURITE : n'executer que P-touch Editor installe dans Program Files
+    ; (config.ini est modifiable sans droits administrateur)
+    if !PteditValide(PTEDIT_EXE)
+        throw Error("Chemin de P-touch Editor refuse (doit etre ptedit*.exe dans Program Files) : " PTEDIT_EXE)
     Run('"' PTEDIT_EXE '" "' fichierTemp '"')
 }
 
@@ -739,6 +835,34 @@ CreateAndOpenLabel(contenuTexte)
 ; CTRL+ALT+V : vide DEFINITIVEMENT le dossier patient (sans Corbeille).
 ; A utiliser APRES l'import dans Heidi. Le dossier lui-meme est conserve.
 ;---------------------------------------------------------------
+PteditValide(chemin)
+{
+    if !FileExist(chemin) || InStr(chemin, "..")
+        return false
+    SplitPath(chemin, &nom)
+    if !RegExMatch(nom, "i)^ptedit\d*\.exe$")
+        return false
+    for base in [EnvGet("ProgramFiles"), EnvGet("ProgramFiles(x86)")]
+        if (base != "" && InStr(chemin, base "\") = 1)
+            return true
+    return false
+}
+
+; Les etiquettes temporaires contiennent des donnees patient : supprimees
+; apres 12 h (au lieu de 30 jours), et a chaque demarrage du script.
+PurgerEtiquettesTemporaires()
+{
+    try
+    {
+        Loop Files, LBX_TEMP_DIR "\Etiquette_*.lbx"
+        {
+            dateModif := FileGetTime(A_LoopFileFullPath,"M")
+            if (DateDiff(A_Now, dateModif, "Hours") >= 12)
+                try FileDelete(A_LoopFileFullPath)
+        }
+    }
+}
+
 ViderDossierPatient()
 {
     if !DirExist(DOSSIER_PATIENT)
@@ -746,14 +870,30 @@ ViderDossierPatient()
         NotifierDossierPatient("Dossier patient introuvable : rien n'a ete supprime.")
         return
     }
+    ; SECURITE : on ne vide qu'un dossier reconnu comme dossier patient
+    ; (fichier marqueur cree par l'installation), jamais une racine ni le profil.
+    if (StrLen(RTrim(DOSSIER_PATIENT, "\")) <= 3 || RTrim(DOSSIER_PATIENT, "\") = EnvGet("USERPROFILE")
+        || !FileExist(DOSSIER_PATIENT "\" MARQUEUR_PATIENT))
+    {
+        MsgBox("Ce dossier n'est pas reconnu comme dossier patient :`n" DOSSIER_PATIENT
+            . "`n`nPar securite, rien n'a ete supprime. Ouvrez 'Dr Sante outils' puis"
+            . " 'Modifier les reglages' pour choisir un dossier dedie.", "Dossier patient", "Icon!")
+        return
+    }
+
+    ; Fin de consultation : le presse-papiers (synthese Heidi) est vide aussi,
+    ; pour ne jamais coller les donnees d'un patient dans le dossier du suivant.
+    try CopierPressePapiersPrive("")
 
     elements := []
     Loop Files, DOSSIER_PATIENT "\*", "FD"
-        elements.Push({chemin: A_LoopFilePath, estDossier: InStr(A_LoopFileAttrib, "D") > 0})
+        if (A_LoopFileName != MARQUEUR_PATIENT)
+            elements.Push({chemin: A_LoopFilePath, estDossier: InStr(A_LoopFileAttrib, "D") > 0})
 
     nb := 0
     Loop Files, DOSSIER_PATIENT "\*", "FR"
-        nb++
+        if (A_LoopFileName != MARQUEUR_PATIENT)
+            nb++
 
     echecs := 0
     for e in elements
